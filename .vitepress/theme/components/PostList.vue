@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { data as posts } from '../posts.data.ts'
 
+defineProps<{
+  sectionTitle?: string
+}>()
+
 interface Post {
   title: string
   url: string
@@ -40,6 +44,7 @@ function readingTime(excerpt?: string, description?: string): string {
 
 <template>
   <div class="post-list">
+    <h2 v-if="sectionTitle" class="section-title">{{ sectionTitle }}</h2>
     <div v-if="typedPosts.length === 0" class="empty">
       <div class="empty-icon">📝</div>
       <p>还没有文章，在 <code>posts/</code> 目录下创建第一篇吧。</p>
@@ -90,6 +95,17 @@ function readingTime(excerpt?: string, description?: string): string {
   display: flex;
   flex-direction: column;
   gap: 20px;
+}
+
+/* ── 分区标题 ── */
+.section-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--vp-c-text-2);
+  text-align: left;
+  margin: 0;
+  padding: 0 4px;
+  letter-spacing: 0.02em;
 }
 
 /* ── 空状态 ── */
