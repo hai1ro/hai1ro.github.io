@@ -1,0 +1,41 @@
+/* 博客全局样式 */
+
+/* 文章正文排版优化 */
+.vp-doc h1 {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.vp-doc h2 {
+  font-size: 22px;
+  font-weight: 600;
+  margin-top: 36px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--vp-c-divider);
+}
+
+/* 文章页元信息 */
+.post-page-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  font-size: 14px;
+  color: var(--vp-c-text-2);
+}
+
+/* 代码块 */
+.vp-doc div[class*='language-'] {
+  border-radius: 8px;
+}
+
+/* 链接 */
+.vp-doc a {
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.vp-doc a:hover {
+  text-decoration: underline;
+}
