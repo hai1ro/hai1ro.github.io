@@ -180,3 +180,78 @@ html {
   border-radius: 8px;
   max-width: 100%;
 }
+
+/* =============================================
+   页面组件辅助样式
+   ============================================= */
+
+/* 归档页：文章计数区域 */
+.archive-stats {
+  max-width: 720px;
+  margin: 0 auto 28px;
+  text-align: right;
+}
+
+/* 关于页：内容容器 */
+.about-content {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+/* 特性卡片网格 */
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin: 1.2em 0;
+}
+.feature-card {
+  background: var(--vp-c-bg-soft);
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 10px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.feature-card:hover {
+  border-color: var(--vp-c-brand-2);
+  transform: translateY(-2px);
+}
+.feature-icon {
+  font-size: 28px;
+  line-height: 1;
+}
+.feature-card strong {
+  font-size: 15px;
+  color: var(--vp-c-text-1);
+}
+.feature-card span:last-child {
+  font-size: 13px;
+  color: var(--vp-c-text-2);
+  line-height: 1.5;
+}
+
+/* 技术栈徽章 */
+.tech-stack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 1em 0;
+}
+.tech-badge {
+  display: inline-block;
+  padding: 5px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 100px;
+  background: var(--vp-c-brand-soft);
+  color: var(--vp-c-brand-1);
+  border: 1px solid transparent;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.tech-badge:hover {
+  border-color: var(--vp-c-brand-2);
+  transform: translateY(-1px);
+}
