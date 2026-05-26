@@ -7,7 +7,7 @@ export default defineConfig({
   base: '/',
 
   lastUpdated: true,
-  cleanUrls: true,
+  cleanUrls: false, // GitHub Pages 不支持服务端 clean URL，关掉避免软 404
 
   // 首页不显示 sidebar
   themeConfig: {

@@ -9,11 +9,13 @@ export default createContentLoader('/posts/**/*.md', {
   transform(raw) {
     return raw
       .map((page) => ({
-        title: page.frontmatter.title || page.url.replace(/^\/posts\//, '').replace(/\.md$/, ''),
-        url: page.url.replace(/\.md$/, ''),
+        title: page.frontmatter.title || page.url.replace(/^\/posts\//, '').replace(/\.(md|html)$/, ''),
+        // 保留 page.url 原样 —— cleanUrls:false 时自带 .html，true 时不带
+        url: page.url,
         date: page.frontmatter.date || null,
         excerpt: page.excerpt,
         tags: page.frontmatter.tags || [],
+        description: page.frontmatter.description || '',
       }))
       .sort((a, b) => {
         if (!a.date && !b.date) return 0
