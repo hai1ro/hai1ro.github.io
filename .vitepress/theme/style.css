@@ -73,7 +73,9 @@ html {
   font-weight: 700;
   margin-top: 2em;
   margin-bottom: 0.6em;
+  padding-top: 0;
   padding-bottom: 0.3em;
+  border-top: none;
   border-bottom: 2px solid var(--vp-c-divider);
   letter-spacing: -0.01em;
 }
@@ -173,6 +175,20 @@ html {
 }
 .vp-doc li {
   margin: 0.3em 0;
+}
+
+/* ── 任务列表 checkbox ── */
+.vp-doc ul > li.task-list-item {
+  list-style: none;
+  margin-left: -1.5em;
+}
+.vp-doc .task-list-item input[type='checkbox'] {
+  margin-right: 8px;
+  accent-color: var(--vp-c-brand-1);
+  width: 15px;
+  height: 15px;
+  cursor: default;
+  vertical-align: -2px;
 }
 
 /* ── 图片 ── */

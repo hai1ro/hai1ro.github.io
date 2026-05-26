@@ -102,8 +102,10 @@ const { site } = useData()
 .hero-title {
   font-size: 36px;
   font-weight: 800;
+  line-height: 1.35;
   letter-spacing: -0.03em;
   margin: 0 0 12px;
+  padding: 6px 0;
   background: linear-gradient(135deg, var(--vp-c-text-1) 0%, var(--vp-c-brand-1) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;

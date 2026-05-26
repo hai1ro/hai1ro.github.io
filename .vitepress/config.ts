@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitepress'
+import taskLists from 'markdown-it-task-lists'
 
 export default defineConfig({
   title: "hai1ro's Blog",
@@ -8,6 +9,12 @@ export default defineConfig({
 
   lastUpdated: true,
   cleanUrls: false, // GitHub Pages 不支持服务端 clean URL，关掉避免软 404
+
+  markdown: {
+    config: (md) => {
+      md.use(taskLists)
+    },
+  },
 
   // 首页不显示 sidebar
   themeConfig: {
