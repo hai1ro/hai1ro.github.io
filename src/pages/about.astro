@@ -1,0 +1,94 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Icon from '@/components/Icon.astro';
+import { siteConfig } from '@/config/site';
+import { repoUrl } from '@/config/blog';
+import { getAllPosts } from '@/lib/posts';
+
+const posts = await getAllPosts();
+const totalWords = posts.reduce((sum, post) => sum + (post.body?.length ?? 0), 0);
+---
+
+<BaseLayout title="关于" description={`关于 ${siteConfig.author.name} 与这个博客。`}>
+  <section class="about-hero container">
+    <div>
+      <p class="eyebrow">About</p>
+      <h1>写代码的人，<br />也写字。</h1>
+      <p>
+        我是 {siteConfig.author.name}，一名前端工程师。喜欢研究界面里的细节，
+        也喜欢把想清楚的事情写下来。这个博客用来存放那些值得反复琢磨的念头。
+      </p>
+      <p style="margin-top: 16px;">
+        写得慢，但会一直写。如果你也对工具、设计与表达感兴趣，欢迎通过下面的方式找到我。
+      </p>
+    </div>
+    <img class="about-hero__avatar" src={siteConfig.author.avatar} alt={siteConfig.author.name} width="440" height="440" />
+  </section>
+
+  <div class="container">
+    <div class="about-grid">
+      <section class="about-card">
+        <h2>现在</h2>
+        <ul>
+          <li>做前端，关注编辑器、设计系统与开发者体验。</li>
+          <li>维护这个博客，偶尔写点小工具。</li>
+          <li>正在学习如何把复杂的事情讲简单。</li>
+        </ul>
+      </section>
+
+      <section class="about-card">
+        <h2>写什么</h2>
+        <ul>
+          <li>前端工程与产品设计的交叉地带。</li>
+          <li>工具的使用方式，以及它们背后的取舍。</li>
+          <li>一些不确定但值得记录的日常思考。</li>
+        </ul>
+      </section>
+
+      <section class="about-card about-card--wide">
+        <h2>这个博客</h2>
+        <p>
+          站点由 Astro 静态生成，界面使用 Semi Design 的设计系统，后台是一个基于 Tiptap
+          的 Notion 风格编辑器。文章是仓库里的 Markdown 文件，通过 GitHub OAuth 登录后直接提交，
+          再由 GitHub Actions 构建到 GitHub Pages。
+        </p>
+        <p style="margin-top: 10px;">
+          目前已经积累 {posts.length} 篇文章，约 {Math.round(totalWords / 1000)} 千字。
+          整个系统的代码与文章都在
+          <a href={repoUrl()} target="_blank" rel="noopener noreferrer">
+            这个仓库
+          </a>
+          里。
+        </p>
+        <div class="about-stack">
+          <span class="tag">Astro</span>
+          <span class="tag">React</span>
+          <span class="tag">Semi Design</span>
+          <span class="tag">Tiptap</span>
+          <span class="tag">GitHub Pages</span>
+          <span class="tag">Cloudflare Workers</span>
+        </div>
+      </section>
+
+      <section class="about-card about-card--wide">
+        <h2>联系</h2>
+        <p>
+          最直接的方式是在 GitHub 上找到我。
+          如果你发现了文章里的错误，或者想聊聊某个话题，欢迎开 issue 或发邮件。
+        </p>
+        <div class="about-stack">
+          {siteConfig.social.map((item) => (
+            <a class="tag" href={item.href} target={item.href.startsWith('http') ? '_blank' : undefined} rel={item.href.startsWith('http') ? 'noopener noreferrer' : undefined}>
+              <Icon name={item.icon} size={13} />
+              {item.label}
+            </a>
+          ))}
+          <a class="tag" href={siteConfig.adminPath}>
+            <Icon name="pencil" size={13} />
+            管理后台
+          </a>
+        </div>
+      </section>
+    </div>
+  </div>
+</BaseLayout>

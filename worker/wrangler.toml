@@ -1,0 +1,17 @@
+name = "hai1ro-blog-oauth"
+main = "oauth-worker.js"
+compatibility_date = "2026-01-01"
+
+# 这些是公开配置，可以提交到仓库。
+# GITHUB_CLIENT_SECRET 千万不要写在这里，使用：
+#   npx wrangler secret put GITHUB_CLIENT_SECRET
+[vars]
+GITHUB_CLIENT_ID = "REPLACE_WITH_YOUR_OAUTH_APP_CLIENT_ID"
+GITHUB_SCOPE = "repo read:user"
+
+# 允许接收 token 的前端来源，逗号分隔，不要带结尾斜杠。
+# 本地调试 OAuth 时再临时加入 http://localhost:4321
+ALLOWED_ORIGINS = "https://hai1ro.github.io"
+
+# 可选：自定义回调地址（默认是 <worker-origin>/callback）
+# OAUTH_CALLBACK_URL = "https://oauth.example.com/callback"

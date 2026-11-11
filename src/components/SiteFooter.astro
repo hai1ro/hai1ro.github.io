@@ -1,0 +1,27 @@
+---
+import { siteConfig } from '@/config/site';
+import Icon from './Icon.astro';
+
+const now = new Date().getFullYear();
+const yearLabel =
+  now > siteConfig.startYear ? `${siteConfig.startYear}–${now}` : String(siteConfig.startYear);
+---
+
+<footer class="site-footer">
+  <div class="container site-footer__inner">
+    <div class="site-footer__meta">
+      <span>© {yearLabel} {siteConfig.author.name}</span>
+      <span class="site-footer__dot">·</span>
+      <span>在代码与文字之间</span>
+    </div>
+    <div class="site-footer__meta">
+      <span>Astro · Semi Design · Tiptap</span>
+      <span class="site-footer__dot">·</span>
+      {siteConfig.social.map((item) => (
+        <a href={item.href} aria-label={item.label} title={item.label} target={item.href.startsWith('http') ? '_blank' : undefined} rel={item.href.startsWith('http') ? 'noopener noreferrer' : undefined}>
+          <Icon name={item.icon} size={15} />
+        </a>
+      ))}
+    </div>
+  </div>
+</footer>

@@ -1,0 +1,135 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Icon from '@/components/Icon.astro';
+import { collectTags, getAllPosts, postHref, readingMinutes } from '@/lib/posts';
+import { toISODate } from '@/lib/date';
+
+const posts = await getAllPosts();
+const tags = collectTags(posts);
+
+const groups = new Map<string, typeof posts>();
+for (const post of posts) {
+  const year = String(post.data.date.getFullYear());
+  const list = groups.get(year) ?? [];
+  list.push(post);
+  groups.set(year, list);
+}
+---
+
+<BaseLayout title="文章" description="按时间整理的所有文章，可按标签筛选或搜索。">
+  <div data-archive>
+    <section class="archive-hero">
+      <div class="container">
+        <p class="eyebrow">Archive</p>
+        <h1>所有文章</h1>
+        <p>
+          共 {posts.length} 篇。按时间排列，也可以按标签筛选或直接搜索。
+          写作的主题大多关于代码、设计与日常。
+        </p>
+      </div>
+    </section>
+
+    <div class="archive-toolbar">
+      <div class="container">
+        <label class="archive-search">
+          <span class="archive-search__icon"><Icon name="search" size={16} /></span>
+          <input
+            type="search"
+            data-archive-search
+            placeholder="搜索标题、摘要或标签…"
+            aria-label="搜索文章"
+            autocomplete="off"
+          />
+        </label>
+
+        <div class="archive-tags" role="group" aria-label="按标签筛选">
+          <button
+            type="button"
+            class="chip"
+            data-archive-tag=""
+            data-active="true"
+            aria-pressed="true"
+          >
+            全部
+            <em>{posts.length}</em>
+          </button>
+          {tags.map((tag) => (
+            <button
+              type="button"
+              class="chip"
+              data-archive-tag={tag.name}
+              data-active="false"
+              aria-pressed="false"
+            >
+              {tag.name}
+              <em>{tag.count}</em>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="archive-summary">
+        <span data-archive-count aria-live="polite">{posts.length} 篇</span>
+        <span data-archive-filtered hidden>已应用筛选</span>
+      </div>
+
+      {[...groups.entries()].map(([year, list]) => (
+        <section class="archive-group" data-archive-group aria-label={`${year} 年`}>
+          <div class="archive-year">{year}</div>
+          <div>
+            {list.map((post) => {
+              const searchText = [
+                post.data.title,
+                post.data.description,
+                post.data.tags.join(' '),
+                post.id,
+              ]
+                .join(' ')
+                .toLowerCase();
+              return (
+                <a
+                  class="archive-item"
+                  href={postHref(post)}
+                  data-archive-item
+                  data-search={searchText}
+                  data-tags={JSON.stringify(post.data.tags)}
+                >
+                  <time class="archive-item__date" datetime={toISODate(post.data.date)}>
+                    {toISODate(post.data.date).slice(5, 10).replace('-', '.')}
+                  </time>
+                  <div>
+                    <h3>
+                      {post.data.title}
+                      {post.data.draft && <span class="draft-badge">草稿</span>}
+                    </h3>
+                    {post.data.description && (
+                      <p class="archive-item__desc">{post.data.description}</p>
+                    )}
+                  </div>
+                  <div class="archive-item__tags">
+                    <span class="archive-item__reading">{readingMinutes(post)} 分钟</span>
+                    {post.data.tags.slice(0, 2).map((tag) => (
+                      <span class="tag">{tag}</span>
+                    ))}
+                  </div>
+                </a>
+              );
+            })}
+          </div>
+        </section>
+      ))}
+
+      <div class="archive-empty" data-archive-empty hidden>
+        <p class="serif">没有找到文章</p>
+        <span>换个关键词或标签试试。</span>
+        <button type="button" data-archive-reset>清除筛选</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    import '@/scripts/archive';
+  </script>
+</BaseLayout>

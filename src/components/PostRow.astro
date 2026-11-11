@@ -1,0 +1,42 @@
+---
+import type { Post } from '@/lib/posts';
+import { postHref, readingMinutes, tagHref } from '@/lib/posts';
+import { formatDateShort } from '@/lib/date';
+
+interface Props {
+  post: Post;
+}
+
+const { post } = Astro.props;
+const { data } = post;
+const date = data.date;
+const tags = data.tags.slice(0, 3);
+---
+
+<article class:list={['post-row', !data.cover && 'post-row--text']}>
+  <time class="post-row__date" datetime={date.toISOString()}>
+    {formatDateShort(date)}
+  </time>
+
+  <div class="post-row__body">
+    <h3><a href={postHref(post)}>{data.title}</a></h3>
+    {data.description && <p class="post-row__desc">{data.description}</p>}
+    <div class="post-row__meta">
+      {data.draft && <span class="draft-badge">草稿</span>}
+      <span>{readingMinutes(post)} 分钟阅读</span>
+      {tags.length > 0 && (
+        <span class="post-row__tags">
+          {tags.map((tag) => (
+            <a class="tag" href={tagHref(tag)}>{tag}</a>
+          ))}
+        </span>
+      )}
+    </div>
+  </div>
+
+  {data.cover && (
+    <a class="post-row__cover" href={postHref(post)} tabindex="-1" aria-hidden="true">
+      <img src={data.cover} alt={data.coverAlt ?? ''} loading="lazy" decoding="async" />
+    </a>
+  )}
+</article>

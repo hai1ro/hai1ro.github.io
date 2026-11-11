@@ -1,0 +1,154 @@
+---
+import { render } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Icon from '@/components/Icon.astro';
+import { siteConfig } from '@/config/site';
+import { formatDateCN } from '@/lib/date';
+import { getAllPosts, postHref, readingMinutes, tagHref, type Post } from '@/lib/posts';
+
+export async function getStaticPaths() {
+  const posts = await getAllPosts();
+  return posts.map((post, index) => ({
+    params: { slug: post.id },
+    props: {
+      post,
+      prev: posts[index + 1] ?? null,
+      next: posts[index - 1] ?? null,
+    },
+  }));
+}
+
+interface Props {
+  post: Post;
+  prev: Post | null;
+  next: Post | null;
+}
+
+const { post, prev, next } = Astro.props;
+const { Content, headings } = await render(post);
+const toc = headings.filter((heading) => heading.depth === 2 || heading.depth === 3);
+const showToc = toc.length >= 2;
+const { data } = post;
+const updated = data.updated && data.updated.getTime() !== data.date.getTime() ? data.updated : null;
+const canonical = new URL(Astro.url.pathname, Astro.site ?? 'https://hai1ro.github.io');
+const socialImage =
+  data.cover && /\.(png|jpe?g|webp|gif|avif)$/i.test(data.cover) ? data.cover : '/og.png';
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BlogPosting',
+  headline: data.title,
+  description: data.description,
+  datePublished: data.date.toISOString(),
+  dateModified: (data.updated ?? data.date).toISOString(),
+  author: {
+    '@type': 'Person',
+    name: siteConfig.author.name,
+    url: siteConfig.social.find((item) => item.icon === 'github')?.href,
+  },
+  image: new URL(socialImage, Astro.site ?? 'https://hai1ro.github.io').href,
+  mainEntityOfPage: canonical.href,
+  inLanguage: 'zh-CN',
+};
+---
+
+<BaseLayout
+  title={data.title}
+  description={data.description}
+  image={socialImage}
+  type="article"
+>
+  <script slot="head" type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+
+  <header class="article-header container">
+    <a class="article-header__back" href="/posts/">
+      <Icon name="arrow-left" size={15} />
+      全部文章
+    </a>
+
+    {data.draft && <div class="draft-note">这是一篇草稿，仅本地开发环境可见。</div>}
+
+    {data.tags.length > 0 && (
+      <div class="article-header__tags">
+        {data.tags.map((tag) => (
+          <a class="tag" href={tagHref(tag)}>{tag}</a>
+        ))}
+      </div>
+    )}
+
+    <h1>{data.title}</h1>
+    {data.description && <p class="article-header__desc">{data.description}</p>}
+
+    <div class="article-header__meta">
+      <time datetime={data.date.toISOString()}>{formatDateCN(data.date)}</time>
+      <span class="dot"></span>
+      <span>{readingMinutes(post)} 分钟阅读</span>
+      {updated && (
+        <>
+          <span class="dot"></span>
+          <span>更新于 {formatDateCN(updated)}</span>
+        </>
+      )}
+    </div>
+  </header>
+
+  {data.cover && (
+    <img
+      class="article-cover container"
+      src={data.cover}
+      alt={data.coverAlt ?? ''}
+      loading="eager"
+      decoding="async"
+    />
+  )}
+
+  <div class:list={['container article-layout', !showToc && 'article-layout--plain']}>
+    <article class="prose">
+      <Content />
+    </article>
+
+    {showToc && (
+      <aside class="toc" aria-label="文章目录">
+        <p class="toc__title">On this page</p>
+        {toc.map((heading) => (
+          <a href={`#${heading.slug}`} class={`depth-${heading.depth}`}>
+            {heading.text}
+          </a>
+        ))}
+      </aside>
+    )}
+  </div>
+
+  <div class="container">
+    <footer class="article-footer">
+      {data.tags.length > 0 && (
+        <div class="article-footer__tags">
+          {data.tags.map((tag) => (
+            <a class="tag" href={tagHref(tag)}>{tag}</a>
+          ))}
+        </div>
+      )}
+
+      {(prev || next) && (
+        <nav class="post-nav" aria-label="上一篇 / 下一篇">
+          {prev ? (
+            <a class="post-nav__item" href={postHref(prev)}>
+              <span class="post-nav__label">← 上一篇</span>
+              <span class="post-nav__title">{prev.data.title}</span>
+            </a>
+          ) : (
+            <span />
+          )}
+          {next ? (
+            <a class="post-nav__item post-nav__item--next" href={postHref(next)}>
+              <span class="post-nav__label">下一篇 →</span>
+              <span class="post-nav__title">{next.data.title}</span>
+            </a>
+          ) : (
+            <span />
+          )}
+        </nav>
+      )}
+    </footer>
+  </div>
+</BaseLayout>

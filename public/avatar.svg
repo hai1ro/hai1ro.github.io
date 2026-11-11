@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 440" width="440" height="440" role="img" aria-label="Hai1ro 头像">
+  <defs>
+    <radialGradient id="paper" cx="35%" cy="28%" r="85%">
+      <stop offset="0%" stop-color="#fffaf0"/>
+      <stop offset="100%" stop-color="#eadfcd"/>
+    </radialGradient>
+  </defs>
+  <rect width="440" height="440" rx="220" fill="url(#paper)"/>
+  <circle cx="220" cy="220" r="176" fill="none" stroke="#201d19" stroke-width="2" opacity=".75"/>
+  <circle cx="220" cy="220" r="152" fill="none" stroke="#201d19" stroke-width="1" opacity=".18"/>
+  <text x="220" y="282" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="196" font-weight="500" fill="#201d19">H</text>
+  <circle cx="330" cy="120" r="24" fill="#c14b2c"/>
+  <path d="M92 300c50 26 96 38 150 38" fill="none" stroke="#c14b2c" stroke-width="3" stroke-linecap="round" opacity=".65"/>
+  <circle cx="106" cy="132" r="5" fill="#201d19" opacity=".35"/>
+</svg>

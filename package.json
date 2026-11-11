@@ -1,0 +1,62 @@
+{
+  "name": "hai1ro-blog",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Hai1ro 的个人博客 · Astro + Semi UI + Notion 风格编辑器",
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "sync": "astro sync"
+  },
+  "dependencies": {
+    "@astrojs/react": "4.4.2",
+    "@astrojs/rss": "^4.0.19",
+    "@astrojs/sitemap": "^3.7.4",
+    "@douyinfe/semi-ui": "^2.104.0",
+    "@tiptap/core": "3.33.0",
+    "@tiptap/extension-bubble-menu": "3.33.0",
+    "@tiptap/extension-character-count": "3.33.0",
+    "@tiptap/extension-code-block-lowlight": "3.33.0",
+    "@tiptap/extension-drag-handle": "3.33.0",
+    "@tiptap/extension-drag-handle-react": "3.33.0",
+    "@tiptap/extension-floating-menu": "3.33.0",
+    "@tiptap/extension-image": "3.33.0",
+    "@tiptap/extension-placeholder": "3.33.0",
+    "@tiptap/extension-table": "3.33.0",
+    "@tiptap/extension-task-item": "3.33.0",
+    "@tiptap/extension-task-list": "3.33.0",
+    "@tiptap/pm": "3.33.0",
+    "@tiptap/react": "3.33.0",
+    "@tiptap/starter-kit": "3.33.0",
+    "astro": "5.18.2",
+    "lowlight": "^3.3.0",
+    "marked": "^18.2.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "rehype-autolink-headings": "^7.1.0",
+    "rehype-slug": "^6.0.0",
+    "remark-gfm": "^4.0.1",
+    "turndown": "^7.2.5",
+    "turndown-plugin-gfm": "^1.0.2",
+    "yaml": "^2.9.1"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.12",
+    "@types/react": "^18.3.27",
+    "@types/react-dom": "^18.3.7",
+    "@types/turndown": "^5.0.6",
+    "happy-dom": "^21.0.4",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=20.3.0"
+  },
+  "packageManager": "pnpm@12.18.0"
+}

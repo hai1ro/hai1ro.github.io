@@ -1,0 +1,10 @@
+---
+import 'semi-ui-css';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import AdminMount from '@/admin/AdminMount';
+import '@/admin/styles/admin.css';
+---
+
+<BaseLayout title="管理后台" noindex chrome={false}>
+  <AdminMount client:only="react" />
+</BaseLayout>
