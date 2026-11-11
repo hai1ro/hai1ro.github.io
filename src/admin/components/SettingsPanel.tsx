@@ -134,7 +134,7 @@ export function SettingsPanel({
         <div className="settings-panel__danger">
           <div>
             <strong>删除这篇文章</strong>
-            <p>会从 GitHub 仓库中删除对应的 Markdown 文件，无法撤销。</p>
+            <p>会从 GitHub 仓库中删除对应的 Markdown 文件。删除后需要构建站点，网站才会移除该文章。</p>
           </div>
           <Button type="danger" icon={<Icon name="trash" size={15} />} onClick={onDelete}>
             删除

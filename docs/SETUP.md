@@ -8,7 +8,7 @@
 
 - Astro 5：静态页面、内容集合、RSS、sitemap
 - React 18 + Semi Design：`/admin` 管理后台
-- Tiptap 3：Markdown 编辑器
+- CodeMirror 6 + marked + highlight.js：Markdown 源码编辑器、实时预览
 - GitHub Contents API：文章与图片的读写
 - GitHub OAuth（Cloudflare Worker 代理）+ Personal Access Token
 - GitHub Pages + GitHub Actions
@@ -54,7 +54,7 @@ featured: false
 - `draft: true` 在开发环境可见，生产构建会排除。
 - 后台会保留 frontmatter 中未识别的字段。
 - 图片上传到 `public/images/uploads/YYYY/MM/`，使用内容哈希命名。
-- 仓库里保留了一篇已有文章（标题为《草稿：关于慢下来》），是否发布或删除由你决定；`src/content/posts/.gitkeep` 仅用于保留目录。
+- 仓库里保留了一篇语法演示文章 `markdown-demo.md`，可以修改或删除；`src/content/posts/.gitkeep` 仅用于保留目录。
 
 ## 管理后台
 
@@ -65,16 +65,18 @@ featured: false
 
 令牌保存在浏览器（sessionStorage；勾选“保持登录”时使用 localStorage）。退出登录会清除。
 
-### 草稿与发布
+### 保存与构建
 
-- 新建草稿 / 编辑草稿：只提交 Markdown 到 GitHub，**不会触发 GitHub Actions / Pages 构建**。
-- 发布或更新已发布文章：提交后调用 GitHub `repository_dispatch`（事件 `blog-publish`），触发一次 Pages 构建。
-- 已发布文章改为草稿（取消发布）：触发一次构建，从站点移除。
-- 删除草稿：不触发构建。
-- 删除已发布文章：触发构建。
-- 图片上传单独不会触发构建，等文章发布时一起生效。
+后台默认进入工作台，导航包含「工作台 / 文章管理」。编辑器使用 Markdown 源码 + 实时预览，支持编辑、分屏、预览三种视图。
 
-这意味着草稿保存不会消耗 Actions 构建次数。OAuth Worker 只在登录时调用，不参与保存流程。
+- 新建、编辑、删除文章：只提交到 GitHub，**不会自动触发 GitHub Actions**。
+- 图片上传：只提交图片，不会触发构建。
+- 修改可以连续进行，确认后点击后台的「构建站点」按钮，一次性触发跑一次 Pages 构建。
+- `draft` 状态在下一次构建时生效；草稿不会进入生产站点。
+- OAuth Worker 只在登录时调用，不参与保存或构建流程。
+- 后台侧栏会显示“有修改未构建”的本地提示；构建成功后清除。
+
+构建按钮会调用 GitHub `repository_dispatch`（事件 `blog-publish`）。如果令牌没有仓库写权限，会提示构建触发失败，但文章提交仍然成功。
 
 ### 手动重新构建
 
@@ -89,7 +91,7 @@ gh workflow run deploy.yml
 ### GitHub Pages
 
 1. 仓库 **Settings → Pages → Build and deployment → Source** 选择 **GitHub Actions**。
-2. 推送到 `main` 不会自动构建；发布文章或手动运行 workflow 才会构建。
+2. 推送到 `main` 不会自动构建；在后台点击「构建站点」或手动运行 workflow 才会构建。
 3. 可在 **Settings → Secrets and variables → Actions → Variables** 配置：
 
 | 变量 | 默认值 | 说明 |

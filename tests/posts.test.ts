@@ -17,7 +17,12 @@ function frontmatter(draft: boolean): PostFrontmatter {
 
 function createClient() {
   const putFile = vi.fn(async () => ({
-    content: { name: 'test.md', path: 'src/content/posts/test-post.md', sha: 'new-sha', size: 10 },
+    content: {
+      name: 'test.md',
+      path: 'src/content/posts/test-post.md',
+      sha: 'new-sha',
+      size: 10,
+    },
     commit: { sha: 'commit' },
   }));
   const deleteFile = vi.fn(async () => ({ commit: { sha: 'delete-commit' } }));
@@ -30,97 +35,41 @@ function createClient() {
   };
 }
 
-describe('publish workflow', () => {
-  it('does not dispatch when saving a new draft', async () => {
-    const { client, dispatchBlogPublish } = createClient();
-    const result = await saveDocument(client, {
-      slug: 'test-post',
-      frontmatter: frontmatter(true),
-      body: 'draft',
-      extra: {},
-      isNew: true,
-      wasPublished: false,
-    });
-    expect(dispatchBlogPublish).not.toHaveBeenCalled();
-    expect(result.dispatched).toBe(false);
-  });
-
-  it('does not dispatch when editing an existing draft', async () => {
-    const { client, dispatchBlogPublish } = createClient();
+describe('saving and deleting', () => {
+  it('saves a draft without triggering a build', async () => {
+    const { client, putFile, dispatchBlogPublish } = createClient();
     await saveDocument(client, {
       slug: 'test-post',
       frontmatter: frontmatter(true),
       body: 'draft',
       extra: {},
-      sha: 'old-sha',
-      isNew: false,
-      wasPublished: false,
+      isNew: true,
     });
+    expect(putFile).toHaveBeenCalledOnce();
     expect(dispatchBlogPublish).not.toHaveBeenCalled();
   });
 
-  it('dispatches when publishing a new article', async () => {
-    const { client, dispatchBlogPublish } = createClient();
-    const result = await saveDocument(client, {
-      slug: 'test-post',
-      frontmatter: frontmatter(false),
-      body: 'published',
-      extra: {},
-      isNew: true,
-      wasPublished: false,
-    });
-    expect(dispatchBlogPublish).toHaveBeenCalledOnce();
-    expect(result.dispatched).toBe(true);
-  });
-
-  it('dispatches when unpublishing a published article', async () => {
-    const { client, dispatchBlogPublish } = createClient();
+  it('saves a published article without triggering a build', async () => {
+    const { client, putFile, dispatchBlogPublish } = createClient();
     await saveDocument(client, {
       slug: 'test-post',
-      frontmatter: frontmatter(true),
-      body: 'draft again',
-      extra: {},
-      sha: 'old-sha',
-      isNew: false,
-      wasPublished: true,
-    });
-    expect(dispatchBlogPublish).toHaveBeenCalledOnce();
-  });
-
-  it('surfaces dispatch errors without failing the save', async () => {
-    const { client, dispatchBlogPublish } = createClient();
-    dispatchBlogPublish.mockRejectedValueOnce(new Error('missing workflow scope'));
-    const result = await saveDocument(client, {
-      slug: 'test-post',
       frontmatter: frontmatter(false),
       body: 'published',
       extra: {},
       isNew: true,
-      wasPublished: false,
     });
-    expect(result.dispatched).toBe(false);
-    expect(result.dispatchError).toContain('missing workflow scope');
-  });
-
-  it('does not dispatch when deleting a draft', async () => {
-    const { client, dispatchBlogPublish } = createClient();
-    await deleteDocument(client, {
-      path: 'src/content/posts/test-post.md',
-      sha: 'sha',
-      title: 'Test',
-      published: false,
-    });
+    expect(putFile).toHaveBeenCalledOnce();
     expect(dispatchBlogPublish).not.toHaveBeenCalled();
   });
 
-  it('dispatches when deleting a published article', async () => {
-    const { client, dispatchBlogPublish } = createClient();
+  it('deletes an article without triggering a build', async () => {
+    const { client, deleteFile, dispatchBlogPublish } = createClient();
     await deleteDocument(client, {
       path: 'src/content/posts/test-post.md',
       sha: 'sha',
       title: 'Test',
-      published: true,
     });
-    expect(dispatchBlogPublish).toHaveBeenCalledOnce();
+    expect(deleteFile).toHaveBeenCalledOnce();
+    expect(dispatchBlogPublish).not.toHaveBeenCalled();
   });
 });

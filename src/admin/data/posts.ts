@@ -35,35 +35,12 @@ export interface SavePostOptions {
   extra: Record<string, unknown>;
   sha?: string;
   isNew: boolean;
-  /** 保存前是否已发布；用于判断“取消发布”是否需要重新构建 */
-  wasPublished?: boolean;
 }
 
 export interface SavePostResult {
   sha: string;
   path: string;
   frontmatter: PostFrontmatter;
-  /** 是否已主动触发 Pages 构建 */
-  dispatched: boolean;
-  /** 构建触发失败时的提示（文件已经提交成功） */
-  dispatchError?: string;
-}
-
-async function dispatchAfterChange(
-  client: GitHubClient,
-): Promise<{ dispatched: boolean; dispatchError?: string }> {
-  try {
-    await client.dispatchBlogPublish();
-    return { dispatched: true };
-  } catch (error) {
-    return {
-      dispatched: false,
-      dispatchError:
-        error instanceof Error
-          ? error.message
-          : '无法触发 GitHub Actions，请到 Actions 页面手动运行部署。',
-    };
-  }
 }
 
 const CACHE_TTL = 30_000;
@@ -221,36 +198,25 @@ export async function saveDocument(
 
   invalidatePostCache();
 
-  // 草稿只提交，不触发 Actions；只有发布状态才主动触发 Pages 构建
-  const visibilityChanged = Boolean(options.wasPublished) && frontmatter.draft;
-  const shouldDeploy = !frontmatter.draft || visibilityChanged;
-  const deployment = shouldDeploy
-    ? await dispatchAfterChange(client)
-    : { dispatched: false as const };
-
+  // 所有保存都只提交，不构建。构建由后台的「构建站点」按钮显式触发。
   return {
     sha: result.content.sha,
     path: result.content.path,
     frontmatter,
-    ...deployment,
   };
 }
 
 export async function deleteDocument(
   client: GitHubClient,
-  post: { path: string; sha: string; title: string; published: boolean },
-): Promise<{ dispatched: boolean; dispatchError?: string }> {
+  post: { path: string; sha: string; title: string },
+): Promise<void> {
   await client.deleteFile({
     path: post.path,
     sha: post.sha,
     message: `post: 删除《${post.title}》`,
   });
   invalidatePostCache();
-
-  // 删除草稿不触发构建；删除已发布文章才需要重新构建
-  return post.published
-    ? dispatchAfterChange(client)
-    : { dispatched: false };
+  // 删除也只提交；需要时由「构建站点」统一构建
 }
 
 const ALLOWED_IMAGE_TYPES: Record<string, string> = {

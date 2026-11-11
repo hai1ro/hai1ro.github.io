@@ -10,8 +10,12 @@ interface Props {
   posts: PostSummary[];
   loading: boolean;
   error: string | null;
+  pendingBuildAt: string | null;
+  building: boolean;
+  onOpenPosts: () => void;
   onNew: () => void;
-  onOpenPost: (slug: string) => void;
+  onEdit: (slug: string) => void;
+  onBuild: () => void;
   onRefresh: () => void;
   onOpenSidebar: () => void;
 }
@@ -21,8 +25,12 @@ export function Dashboard({
   posts,
   loading,
   error,
+  pendingBuildAt,
+  building,
+  onOpenPosts,
   onNew,
-  onOpenPost,
+  onEdit,
+  onBuild,
   onRefresh,
   onOpenSidebar,
 }: Props) {
@@ -30,98 +38,89 @@ export function Dashboard({
   const published = posts.filter((post) => !post.frontmatter.draft).length;
   const drafts = posts.filter((post) => post.frontmatter.draft).length;
   const recent = posts.slice(0, 5);
-  const repo = `${session.repo.full_name}`;
+  const repo = session.repo.full_name;
 
   return (
-    <div className="dashboard-shell">
+    <div className="admin-page">
       <header className="editor-topbar">
         <div className="editor-topbar__left">
           <button
             type="button"
             className="icon-btn editor-menu-btn"
             onClick={onOpenSidebar}
-            aria-label="打开文章列表"
+            aria-label="打开菜单"
           >
             <Icon name="menu" size={18} />
           </button>
           <div className="editor-breadcrumb">
             <strong>工作台</strong>
           </div>
-          <span className="save-state">
+          <span className={`save-state ${pendingBuildAt ? 'is-dirty' : ''}`}>
             <span className="save-state__dot" />
-            已连接 GitHub
+            {pendingBuildAt ? '有修改未构建' : '已与仓库同步'}
           </span>
         </div>
         <div className="editor-topbar__actions">
-          <a className="topbar-site-link" href="/" target="_blank" rel="noopener noreferrer">
-            <Icon name="external" size={15} />
-            打开站点
-          </a>
-          <button
-            type="button"
-            className="icon-btn"
-            onClick={toggle}
-            aria-label="切换深浅色"
-            title="切换深浅色"
+          <Button
+            theme="borderless"
+            icon={<Icon name="refresh" size={15} />}
+            onClick={onRefresh}
+            loading={loading}
           >
+            刷新
+          </Button>
+          <Button
+            type="primary"
+            theme="solid"
+            icon={<Icon name="plus" size={15} />}
+            onClick={onNew}
+          >
+            新建文章
+          </Button>
+          <a className="icon-btn" href="/" target="_blank" rel="noopener noreferrer" title="查看站点">
+            <Icon name="external" size={17} />
+          </a>
+          <button type="button" className="icon-btn" onClick={toggle} title="切换深浅色">
             <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={17} />
           </button>
         </div>
       </header>
 
-      <div className="dashboard-scroll">
-        <div className="dashboard">
-          <section className="dash-hero">
+      <div className="admin-page__scroll">
+        <div className="admin-page__body">
+          <section className="dashboard-head">
             <div>
-              <p className="eyebrow">Workspace</p>
-              <h1>
-                欢迎回来，{session.user.name || session.user.login}
-              </h1>
-              <p className="dash-hero__lede">
-                文章保存在仓库的 <code>src/content/posts</code> 中。保存草稿只会提交 commit，
-                不会触发构建；发布或更新已发布文章时才会触发 GitHub Actions。
+              <h1>工作台</h1>
+              <p>
+                当前仓库 <code>{repo}</code>，分支 <code>{session.repo.default_branch}</code>。
+                保存文章只提交，构建站点后才会更新网站。
               </p>
             </div>
-            <Button
-              type="primary"
-              theme="solid"
-              size="large"
-              icon={<Icon name="plus" size={17} />}
-              onClick={onNew}
-            >
-              写一篇新文章
-            </Button>
+            <div className="dashboard-head__actions">
+              <Button icon={<Icon name="file" size={15} />} onClick={onOpenPosts}>
+                文章管理
+              </Button>
+              <Button
+                type="primary"
+                theme="solid"
+                icon={<Icon name="refresh" size={15} />}
+                loading={building}
+                onClick={onBuild}
+              >
+                构建站点
+              </Button>
+            </div>
           </section>
 
-          <section className="dash-stats" aria-label="文章统计">
-            <div className="dash-stat">
-              <span>全部文章</span>
-              <strong>{posts.length}</strong>
-              <em>篇</em>
+          {pendingBuildAt && (
+            <div className="build-banner">
+              <Icon name="alert" size={16} />
+              <span>已有修改提交到 GitHub，但还没有构建。可以继续修改多篇文章，再统一构建。</span>
+              <Button size="small" loading={building} onClick={onBuild}>
+                立即构建
+              </Button>
             </div>
-            <div className="dash-stat">
-              <span>已发布</span>
-              <strong>{published}</strong>
-              <em>篇</em>
-            </div>
-            <div className="dash-stat">
-              <span>草稿</span>
-              <strong>{drafts}</strong>
-              <em>篇</em>
-            </div>
-            <div className="dash-stat dash-stat--repo">
-              <span>当前仓库</span>
-              <strong>{repo}</strong>
-              <a
-                href={session.repo.html_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="打开 GitHub 仓库"
-              >
-                <Icon name="github" size={16} />
-              </a>
-            </div>
-          </section>
+          )}
 
           {error && (
             <div className="dash-error">
@@ -133,96 +132,124 @@ export function Dashboard({
             </div>
           )}
 
-          <div className="dash-grid">
-            <section className="dash-card">
-              <header className="dash-card__head">
-                <h2>最近更新</h2>
-                <button type="button" className="dash-refresh" onClick={onRefresh} disabled={loading}>
-                  <Icon name="refresh" size={14} />
-                  {loading ? '同步中…' : '刷新'}
+          <section className="dashboard-stats" aria-label="文章统计">
+            <button type="button" className="dashboard-stat" onClick={onOpenPosts}>
+              <span>全部文章</span>
+              <strong>{posts.length}</strong>
+            </button>
+            <button type="button" className="dashboard-stat" onClick={onOpenPosts}>
+              <span>已发布</span>
+              <strong>{published}</strong>
+            </button>
+            <button type="button" className="dashboard-stat" onClick={onOpenPosts}>
+              <span>草稿</span>
+              <strong>{drafts}</strong>
+            </button>
+            <div className="dashboard-stat dashboard-stat--repo">
+              <span>仓库</span>
+              <strong>{repo}</strong>
+              <a href={session.repo.html_url} target="_blank" rel="noopener noreferrer" title="打开 GitHub 仓库">
+                <Icon name="github" size={16} />
+              </a>
+            </div>
+          </section>
+
+          <div className="dashboard-grid">
+            <section className="admin-card">
+              <header className="admin-card__head">
+                <h2>最近文章</h2>
+                <button type="button" className="text-action" onClick={onOpenPosts}>
+                  查看全部
                 </button>
               </header>
 
               {loading && posts.length === 0 ? (
-                <div className="dash-loading">
-                  <span className="dash-skeleton" />
-                  <span className="dash-skeleton" />
-                  <span className="dash-skeleton" />
+                <div className="posts-loading">
+                  {Array.from({ length: 3 }).map((_, index) => (
+                    <span key={index} className="posts-loading__row" />
+                  ))}
                 </div>
               ) : recent.length === 0 ? (
-                <div className="dash-empty">
-                  <p>仓库里还没有文章。</p>
+                <div className="admin-card__empty">
+                  <p>还没有文章。</p>
                   <Button theme="borderless" onClick={onNew}>
                     写第一篇
                   </Button>
                 </div>
               ) : (
-                <div className="dash-posts">
+                <div className="recent-posts">
                   {recent.map((post) => (
                     <button
                       type="button"
-                      className="dash-post"
+                      className="recent-post"
                       key={post.slug}
-                      onClick={() => onOpenPost(post.slug)}
+                      onClick={() => onEdit(post.slug)}
                     >
-                      <span className="dash-post__date">
+                      <span className="recent-post__date">
                         {formatDateShort(post.frontmatter.date)}
                       </span>
-                      <span className="dash-post__body">
-                        <span className="dash-post__title">
+                      <span className="recent-post__main">
+                        <span className="recent-post__title">
                           {post.frontmatter.title}
                           {post.frontmatter.draft && <span className="draft-badge">草稿</span>}
                         </span>
-                        <span className="dash-post__meta">
-                          {post.frontmatter.tags.length > 0
+                        <span className="recent-post__meta">
+                          {post.frontmatter.tags.length
                             ? post.frontmatter.tags.slice(0, 3).join(' · ')
                             : '无标签'}
                         </span>
                       </span>
-                      <Icon name="chevron-down" size={15} className="dash-post__arrow" />
+                      <Icon name="chevron-down" size={15} className="recent-post__arrow" />
                     </button>
                   ))}
                 </div>
               )}
             </section>
 
-            <aside className="dash-side">
-              <section className="dash-card">
-                <h2>连接信息</h2>
-                <dl className="dash-meta">
+            <aside className="dashboard-side">
+              <section className="admin-card">
+                <h2>站点构建</h2>
+                <dl className="admin-meta">
                   <div>
-                    <dt>账号</dt>
-                    <dd>@{session.user.login}</dd>
+                    <dt>状态</dt>
+                    <dd>{pendingBuildAt ? '有待构建的修改' : '已同步'}</dd>
                   </div>
                   <div>
-                    <dt>仓库</dt>
-                    <dd>{repo}</dd>
-                  </div>
-                  <div>
-                    <dt>分支</dt>
-                    <dd>{session.repo.default_branch}</dd>
+                    <dt>触发方式</dt>
+                    <dd>手动构建</dd>
                   </div>
                   <div>
                     <dt>登录方式</dt>
                     <dd>{session.mode === 'oauth' ? 'GitHub OAuth' : '访问令牌'}</dd>
                   </div>
                 </dl>
+                <Button
+                  type="primary"
+                  theme="solid"
+                  block
+                  loading={building}
+                  onClick={onBuild}
+                  style={{ marginTop: 16 }}
+                >
+                  构建站点
+                </Button>
+                <a
+                  className="admin-card__link"
+                  href={`https://github.com/${repo}/actions`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  查看 Actions
+                </a>
               </section>
 
-              <section className="dash-card">
-                <h2>写作提示</h2>
-                <ul className="dash-tips">
-                  <li>
-                    在空行输入 <kbd>/</kbd> 唤起块菜单
-                  </li>
-                  <li>
-                    选中文字出现格式工具栏
-                  </li>
-                  <li>
-                    <kbd>⌘</kbd> + <kbd>S</kbd> 快速保存
-                  </li>
-                  <li>图片会直接上传到仓库的 public 目录</li>
-                  <li>草稿保存不触发构建，发布时才触发</li>
+              <section className="admin-card">
+                <h2>写作说明</h2>
+                <ul className="admin-tips">
+                  <li>Markdown 源码 + 实时预览，支持编辑 / 分屏 / 预览三种视图</li>
+                  <li>工具栏可以插入标题、列表、表格、代码块、链接和图片</li>
+                  <li>保存文章只提交到 GitHub，不会自动构建</li>
+                  <li>修改多篇文章后，在「构建站点」统一发布一次</li>
                 </ul>
               </section>
             </aside>

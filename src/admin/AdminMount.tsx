@@ -2,7 +2,7 @@ import { useEffect, useState, type ComponentType } from 'react';
 
 /**
  * 只在浏览器中动态加载真正的后台应用。
- * 这样 Semi UI / Tiptap 的大量依赖不会被 Astro 的 SSR 预加载，
+ * 这样 Semi UI / CodeMirror 的大量依赖不会被 Astro 的 SSR 预加载，
  * 也避免 Node 直接解析 Semi 的 ESM 样式导入。
  */
 export default function AdminMount() {

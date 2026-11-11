@@ -3,7 +3,7 @@ import { isValidSlug, slugify, suggestedSlug, uniqueSlug } from '../src/lib/slug
 import { countText, deriveDescription } from '../src/lib/text';
 import { formatDateCN, toISODate } from '../src/lib/date';
 import { parsePostSource, stringifyPostSource } from '../src/lib/frontmatter';
-import { htmlToMarkdown, markdownToHtml, normalizeMarkdown } from '../src/lib/markdown';
+import { markdownToHtml } from '../src/lib/markdown';
 
 describe('slug', () => {
   it('slugifies ASCII titles', () => {
@@ -92,53 +92,19 @@ custom: value
   });
 });
 
-describe('markdown conversion', () => {
-  it('renders GFM to html', () => {
+describe('markdown rendering', () => {
+  it('renders GFM table and task list', () => {
     const html = markdownToHtml('- [x] 完成\n\n| a | b |\n|---|---|\n| 1 | 2 |\n');
     expect(html).toContain('<table>');
-    expect(html).toContain('data-type="taskList"');
-    expect(html).toContain('data-checked="true"');
-    expect(html).not.toContain('type="checkbox"');
+    expect(html).toContain('type="checkbox"');
+    expect(html).toContain('完成');
+    expect(html).toContain('task-list-item');
+    expect(html).toContain('contains-task-list');
   });
 
-  it('serializes editor html back to markdown', () => {
-    const html = `
-      <h2>标题</h2>
-      <p>一段 <strong>加粗</strong>、<em>斜体</em>、<code>code</code> 和 <a href="https://example.com">链接</a>。</p>
-      <ul><li><p>一</p></li><li><p>二</p></li></ul>
-      <blockquote><p>引用</p></blockquote>
-      <pre><code class="language-ts">const a = 1;</code></pre>
-      <table style="min-width: 75px;"><colgroup><col style="min-width: 25px;"><col style="min-width: 25px;"></colgroup><tbody><tr><th><p>列 A</p></th><th><p>列 B</p></th></tr><tr><td><p>1</p></td><td><p>2</p></td></tr></tbody></table>
-      <p><img src="/images/a.png" alt="图"></p>
-      <p><s>删除线</s></p>
-    `;
-    const markdown = htmlToMarkdown(html);
-    expect(markdown).toContain('## 标题');
-    expect(markdown).toContain('**加粗**');
-    expect(markdown).toContain('*斜体*');
-    expect(markdown).toContain('[链接](https://example.com)');
-    expect(markdown).toContain('```ts');
-    expect(markdown).toContain('| 列 A | 列 B |');
-    expect(markdown).toContain('![图](/images/a.png)');
-    expect(markdown).toContain('~~删除线~~');
-    expect(markdown).not.toContain('colgroup');
-    expect(markdown).toContain('> 引用');
-  });
-
-  it('serializes Tiptap task items', () => {
-    const html = `
-      <ul data-type="taskList">
-        <li data-type="taskItem" data-checked="true"><label><input type="checkbox" checked><span></span></label><div><p>已完成</p></div></li>
-        <li data-type="taskItem" data-checked="false"><label><input type="checkbox"><span></span></label><div><p>待办</p></div></li>
-      </ul>
-    `;
-    const markdown = htmlToMarkdown(html);
-    expect(markdown).toContain('- [x] 已完成');
-    expect(markdown).toContain('- [ ] 待办');
-    expect(markdown).not.toContain('data-type');
-  });
-
-  it('normalizes blank lines', () => {
-    expect(normalizeMarkdown('a\n\n\n\nb\n')).toBe('a\n\nb\n');
+  it('highlights fenced code', () => {
+    const html = markdownToHtml('\u0060\u0060\u0060ts\nconst value = 1;\n\u0060\u0060\u0060\n');
+    expect(html).toContain('hljs');
+    expect(html).toContain('const');
   });
 });

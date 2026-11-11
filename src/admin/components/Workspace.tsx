@@ -1,53 +1,57 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Input, Modal, Spin, Toast } from '@douyinfe/semi-ui';
+import { useCallback, useEffect, useState } from 'react';
+import { Button, Modal, Spin, Toast } from '@douyinfe/semi-ui';
 import { useAuth } from '../auth/AuthContext';
 import { GitHubError } from '../github/client';
-import { listPosts, loadDocument, type PostDocument, type PostSummary } from '../data/posts';
+import {
+  deleteDocument,
+  listPosts,
+  loadDocument,
+  type PostDocument,
+  type PostSummary,
+} from '../data/posts';
+import {
+  clearPendingBuild,
+  getLastBuild,
+  getPendingBuild,
+  markPendingBuild,
+} from '../data/build-state';
 import { Dashboard } from './Dashboard';
 import { EditorView } from './EditorView';
+import { PostsPage } from './PostsPage';
 import { Icon } from './icons';
 import { suggestedSlug, uniqueSlug } from '@/lib/slug';
-import { formatDateShort } from '@/lib/date';
 
-type Selection =
-  | { type: 'none' }
-  | { type: 'new' }
-  | { type: 'post'; slug: string };
+type View =
+  | { name: 'dashboard' }
+  | { name: 'posts' }
+  | { name: 'new' }
+  | { name: 'editor'; slug: string };
 
-type PostFilter = 'all' | 'published' | 'draft';
-
-function selectionFromHash(): Selection {
-  const hash = window.location.hash.replace(/^#\/?/, '');
-  if (hash === 'new') return { type: 'new' };
-  if (hash.startsWith('post/')) {
-    const slug = decodeURIComponent(hash.slice('post/'.length));
-    if (slug) return { type: 'post', slug };
-  }
-  return { type: 'none' };
-}
-
-function hashFor(selection: Selection): string {
-  if (selection.type === 'new') return '#/new';
-  if (selection.type === 'post') return `#/post/${encodeURIComponent(selection.slug)}`;
-  return '';
+function formatClock(iso: string): string {
+  return new Date(iso).toLocaleTimeString('zh-CN', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
 export function Workspace() {
   const { client, session, logout } = useAuth();
 
+  const [view, setView] = useState<View>({ name: 'dashboard' });
   const [posts, setPosts] = useState<PostSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
-  const [query, setQuery] = useState('');
-  const [filter, setFilter] = useState<PostFilter>('all');
-  const [selection, setSelection] = useState<Selection>(selectionFromHash);
-  const [newSlug, setNewSlug] = useState(() => suggestedSlug(''));
   const [doc, setDoc] = useState<PostDocument | null>(null);
-  const [docLoading, setDocLoading] = useState(selection.type === 'post');
+  const [docLoading, setDocLoading] = useState(false);
   const [docError, setDocError] = useState<string | null>(null);
   const [docReload, setDocReload] = useState(0);
   const [dirty, setDirty] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [newSlug, setNewSlug] = useState(() => suggestedSlug(''));
+  const [editorKey, setEditorKey] = useState(0);
+  const [pendingBuildAt, setPendingBuildAt] = useState<string | null>(() => getPendingBuild());
+  const [lastBuildAt, setLastBuildAt] = useState<string | null>(() => getLastBuild());
+  const [building, setBuilding] = useState(false);
 
   const refreshPosts = useCallback(
     async (force = true) => {
@@ -76,7 +80,14 @@ export function Workspace() {
   }, [refreshPosts]);
 
   useEffect(() => {
-    if (!client || selection.type !== 'post') {
+    // 后台始终从工作台开始，不保留旧的 #/post/... 状态
+    if (window.location.hash) {
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!client || view.name !== 'editor') {
       setDoc(null);
       setDocLoading(false);
       setDocError(null);
@@ -88,7 +99,7 @@ export function Workspace() {
     setDocError(null);
     setDoc(null);
 
-    loadDocument(client, selection.slug)
+    loadDocument(client, view.slug)
       .then((next) => {
         if (cancelled) return;
         setDoc(next);
@@ -108,29 +119,22 @@ export function Workspace() {
     return () => {
       cancelled = true;
     };
-  }, [selection, client, docReload, logout]);
+  }, [view, client, docReload, logout]);
 
-  const applySelection = useCallback(
-    (next: Selection) => {
-      setSelection(next);
-      setSidebarOpen(false);
-      if (next.type === 'new') {
-        setNewSlug(uniqueSlug(suggestedSlug(''), posts.map((post) => post.slug)));
-      }
-      const url = `${window.location.pathname}${window.location.search}${hashFor(next)}`;
-      window.history.replaceState(null, '', url);
-    },
-    [posts],
-  );
+  const applyView = useCallback((next: View) => {
+    setView(next);
+    setSidebarOpen(false);
+    if (next.name !== 'editor') {
+      setDoc(null);
+      setDocError(null);
+    }
+  }, []);
 
   const navigate = useCallback(
-    (next: Selection) => {
+    (next: View) => {
       if (
-        (next.type === 'none' && selection.type === 'none') ||
-        (next.type === 'new' && selection.type === 'new') ||
-        (next.type === 'post' &&
-          selection.type === 'post' &&
-          next.slug === selection.slug)
+        (next.name === view.name && next.name !== 'editor') ||
+        (next.name === 'editor' && view.name === 'editor' && next.slug === view.slug)
       ) {
         setSidebarOpen(false);
         return;
@@ -139,42 +143,122 @@ export function Workspace() {
       if (dirty) {
         Modal.confirm({
           title: '放弃未保存的修改？',
-          content: '切换文章会丢失当前编辑器中尚未提交的内容。',
+          content: '切换页面会丢失当前编辑器中尚未提交的内容。',
           okText: '放弃修改',
           cancelText: '继续编辑',
           okButtonProps: { type: 'danger', theme: 'solid' },
-          onOk: () => applySelection(next),
+          onOk: () => applyView(next),
         });
         return;
       }
-      applySelection(next);
+      applyView(next);
     },
-    [applySelection, dirty, selection],
+    [applyView, dirty, view],
   );
 
-  const handleSaved = useCallback(
-    (info: { slug: string; isNew: boolean }) => {
-      void refreshPosts(true);
-      if (info.isNew) {
-        const next: Selection = { type: 'post', slug: info.slug };
-        setSelection(next);
-        const url = `${window.location.pathname}${window.location.search}${hashFor(next)}`;
-        window.history.replaceState(null, '', url);
-      }
+  const openNew = useCallback(() => {
+    setNewSlug(uniqueSlug(suggestedSlug(''), posts.map((post) => post.slug)));
+    setEditorKey((key) => key + 1);
+    navigate({ name: 'new' });
+  }, [navigate, posts]);
+
+  const openEditor = useCallback(
+    (slug: string) => {
+      setEditorKey((key) => key + 1);
+      navigate({ name: 'editor', slug });
     },
-    [refreshPosts],
+    [navigate],
   );
+
+  const markPending = useCallback(() => {
+    setPendingBuildAt(markPendingBuild());
+  }, []);
+
+  const handleSaved = useCallback(() => {
+    void refreshPosts(true);
+    markPending();
+  }, [markPending, refreshPosts]);
 
   const handleDeleted = useCallback(() => {
     void refreshPosts(true);
-    setSelection({ type: 'none' });
+    markPending();
+    setView({ name: 'posts' });
     setDirty(false);
-    window.history.replaceState(
-      null,
-      '',
-      `${window.location.pathname}${window.location.search}`,
-    );
-  }, [refreshPosts]);
+  }, [markPending, refreshPosts]);
+
+  const handleDeleteFromList = useCallback(
+    async (post: PostSummary) => {
+      if (!client) return;
+      try {
+        await deleteDocument(client, {
+          path: post.path,
+          sha: post.sha,
+          title: post.frontmatter.title || post.slug,
+        });
+        markPending();
+        await refreshPosts(true);
+        Toast.success({
+          content: '已删除并提交。点击「构建站点」后从网站移除。',
+          duration: 4,
+        });
+      } catch (error) {
+        Toast.error({
+          content: error instanceof Error ? error.message : '删除失败',
+          duration: 6,
+        });
+      }
+    },
+    [client, markPending, refreshPosts],
+  );
+
+  const handleBuild = useCallback(() => {
+    if (!client || building) return;
+
+    const doBuild = async () => {
+      setBuilding(true);
+      try {
+        await client.dispatchBlogPublish();
+        const now = clearPendingBuild();
+        setPendingBuildAt(null);
+        setLastBuildAt(now);
+        Toast.success({
+          content: '已触发 GitHub Pages 构建，大约 1–2 分钟后生效。',
+          duration: 4,
+        });
+      } catch (error) {
+        Toast.error({
+          content:
+            error instanceof Error
+              ? `触发构建失败：${error.message}`
+              : '触发构建失败，请到 Actions 页面手动运行。',
+          duration: 7,
+        });
+      } finally {
+        setBuilding(false);
+      }
+    };
+
+    if (dirty) {
+      Modal.confirm({
+        title: '当前有未保存的修改',
+        content: '构建只包含已经提交到 GitHub 的内容，当前未保存的修改不会被发布。建议先保存再构建。',
+        okText: '仍然构建',
+        cancelText: '先去保存',
+        onOk: doBuild,
+      });
+      return;
+    }
+
+    Modal.confirm({
+      title: '构建站点？',
+      content: pendingBuildAt
+        ? '会把当前仓库里所有已提交的修改一次性发布；大约需要 1–2 分钟。'
+        : '当前没有本地记录的待构建修改，仍会重新构建并发布仓库当前内容。',
+      okText: '开始构建',
+      cancelText: '取消',
+      onOk: doBuild,
+    });
+  }, [building, client, dirty, pendingBuildAt]);
 
   const handleLogout = () => {
     if (dirty) {
@@ -184,43 +268,18 @@ export function Workspace() {
         okText: '退出',
         cancelText: '取消',
         okButtonProps: { type: 'danger', theme: 'solid' },
-        onOk: () => {
-          logout();
-          window.history.replaceState(null, '', window.location.pathname);
-        },
+        onOk: logout,
       });
       return;
     }
     logout();
-    window.history.replaceState(null, '', window.location.pathname);
   };
-
-  const counts = useMemo(
-    () => ({
-      all: posts.length,
-      published: posts.filter((post) => !post.frontmatter.draft).length,
-      draft: posts.filter((post) => post.frontmatter.draft).length,
-    }),
-    [posts],
-  );
-
-  const filteredPosts = useMemo(() => {
-    const keyword = query.trim().toLowerCase();
-    return posts.filter((post) => {
-      if (filter === 'published' && post.frontmatter.draft) return false;
-      if (filter === 'draft' && !post.frontmatter.draft) return false;
-      if (!keyword) return true;
-      return (
-        post.frontmatter.title.toLowerCase().includes(keyword) ||
-        post.slug.toLowerCase().includes(keyword) ||
-        post.frontmatter.tags.some((tag) => tag.toLowerCase().includes(keyword))
-      );
-    });
-  }, [posts, query, filter]);
 
   if (!client || !session) return null;
 
   const editorSlugs = posts.map((post) => post.slug);
+  const activeSection =
+    view.name === 'dashboard' ? 'dashboard' : view.name === 'posts' || view.name === 'new' || view.name === 'editor' ? 'posts' : 'dashboard';
 
   return (
     <div className="admin-shell">
@@ -228,7 +287,7 @@ export function Workspace() {
         <button
           type="button"
           className="sidebar-overlay"
-          aria-label="关闭文章列表"
+          aria-label="关闭侧栏"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -257,113 +316,69 @@ export function Workspace() {
           theme="solid"
           size="large"
           block
-          icon={<Icon name="plus" size={17} />}
-          onClick={() => navigate({ type: 'new' })}
+          icon={<Icon name="plus" size={16} />}
+          onClick={openNew}
           className="sidebar-new-btn"
         >
           新建文章
         </Button>
 
-        <div className="sidebar-search">
-          <Input
-            value={query}
-            onChange={setQuery}
-            prefix={<Icon name="search" size={15} />}
-            placeholder="搜索标题、标签或 slug"
-            showClear
-          />
-        </div>
-
-        <div className="sidebar-filters" role="group" aria-label="筛选文章">
-          {(
-            [
-              ['all', '全部', counts.all],
-              ['published', '已发布', counts.published],
-              ['draft', '草稿', counts.draft],
-            ] as const
-          ).map(([value, label, count]) => (
-            <button
-              type="button"
-              key={value}
-              className="sidebar-filter"
-              data-active={filter === value}
-              onClick={() => setFilter(value)}
-            >
-              {label}
-              <em>{count}</em>
-            </button>
-          ))}
-        </div>
-
-        <div className="sidebar-list-head">
-          <span>{loading ? '正在同步…' : `${filteredPosts.length} 篇文章`}</span>
+        <nav className="sidebar-nav" aria-label="后台导航">
           <button
             type="button"
-            className="sidebar-refresh"
-            onClick={() => void refreshPosts(true)}
-            title="刷新列表"
-            disabled={loading}
+            className="sidebar-nav__item"
+            data-active={activeSection === 'dashboard'}
+            onClick={() => navigate({ name: 'dashboard' })}
           >
-            <Icon name="refresh" size={14} />
+            <Icon name="dashboard" size={16} />
+            工作台
           </button>
+          <button
+            type="button"
+            className="sidebar-nav__item"
+            data-active={activeSection === 'posts'}
+            onClick={() => navigate({ name: 'posts' })}
+          >
+            <Icon name="file" size={16} />
+            文章管理
+          </button>
+        </nav>
+
+        <div className="sidebar-build">
+          <div className="sidebar-build__head">
+            <span>站点构建</span>
+            {pendingBuildAt && <em>待构建</em>}
+          </div>
+          <p className="sidebar-build__state">
+            {building
+              ? '正在触发构建…'
+              : pendingBuildAt
+                ? '有修改尚未构建'
+                : lastBuildAt
+                  ? `上次构建 ${formatClock(lastBuildAt)}`
+                  : '尚未构建'}
+          </p>
+          <Button
+            type="primary"
+            theme="solid"
+            block
+            loading={building}
+            icon={<Icon name="refresh" size={15} />}
+            onClick={handleBuild}
+          >
+            构建站点
+          </Button>
+          <a
+            className="sidebar-build__link"
+            href={`https://github.com/${session.repo.full_name}/actions`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            查看 Actions
+          </a>
         </div>
 
-        <div className="sidebar-posts">
-          {loading && posts.length === 0 && (
-            <div className="sidebar-skeletons">
-              {Array.from({ length: 5 }).map((_, index) => (
-                <div className="sidebar-skeleton" key={index} />
-              ))}
-            </div>
-          )}
-
-          {listError && (
-            <div className="sidebar-error">
-              <Icon name="alert" size={16} />
-              <p>{listError}</p>
-              <button type="button" onClick={() => void refreshPosts(true)}>
-                重试
-              </button>
-            </div>
-          )}
-
-          {!loading && !listError && filteredPosts.length === 0 && (
-            <div className="sidebar-empty">
-              <p>{posts.length === 0 ? '还没有文章' : '没有匹配的文章'}</p>
-              {posts.length === 0 && (
-                <button type="button" onClick={() => navigate({ type: 'new' })}>
-                  写第一篇
-                </button>
-              )}
-            </div>
-          )}
-
-          {filteredPosts.map((post) => (
-            <button
-              type="button"
-              key={post.slug}
-              className="sidebar-post"
-              data-active={selection.type === 'post' && selection.slug === post.slug}
-              onClick={() => navigate({ type: 'post', slug: post.slug })}
-            >
-              <span className="sidebar-post__title">
-                {post.frontmatter.title}
-                {post.frontmatter.draft && <span className="sidebar-post__draft">草稿</span>}
-                {post.error && (
-                  <span className="sidebar-post__error" title={post.error}>
-                    <Icon name="alert" size={13} />
-                  </span>
-                )}
-              </span>
-              <span className="sidebar-post__meta">
-                <span>{formatDateShort(post.frontmatter.date)}</span>
-                {post.frontmatter.tags.length > 0 && (
-                  <span>{post.frontmatter.tags.slice(0, 2).join(' · ')}</span>
-                )}
-              </span>
-            </button>
-          ))}
-        </div>
+        <div className="admin-sidebar__spacer" />
 
         <footer className="admin-sidebar__footer">
           <img className="sidebar-avatar" src={session.user.avatar_url} alt="" />
@@ -384,39 +399,64 @@ export function Workspace() {
       </aside>
 
       <main className="admin-main-panel">
-        {selection.type === 'none' && (
+        {view.name === 'dashboard' && (
           <Dashboard
             session={session}
             posts={posts}
             loading={loading}
             error={listError}
-            onNew={() => navigate({ type: 'new' })}
-            onOpenPost={(slug) => navigate({ type: 'post', slug })}
+            pendingBuildAt={pendingBuildAt}
+            building={building}
+            onOpenPosts={() => navigate({ name: 'posts' })}
+            onNew={openNew}
+            onEdit={openEditor}
+            onBuild={handleBuild}
             onRefresh={() => void refreshPosts(true)}
             onOpenSidebar={() => setSidebarOpen(true)}
           />
         )}
 
-        {selection.type === 'new' && (
+        {view.name === 'posts' && (
+          <PostsPage
+            posts={posts}
+            loading={loading}
+            error={listError}
+            pendingBuildAt={pendingBuildAt}
+            building={building}
+            onNew={openNew}
+            onEdit={openEditor}
+            onRefresh={() => void refreshPosts(true)}
+            onBuild={handleBuild}
+            onDelete={handleDeleteFromList}
+            onOpenSidebar={() => setSidebarOpen(true)}
+            onBackDashboard={() => navigate({ name: 'dashboard' })}
+          />
+        )}
+
+        {view.name === 'new' && (
           <EditorView
-            key={`new-${newSlug}`}
+            key={`new-${editorKey}`}
             initial={{ mode: 'new', slug: newSlug }}
             client={client}
             existingSlugs={editorSlugs}
+            pendingBuildAt={pendingBuildAt}
+            building={building}
+            onBuild={handleBuild}
             onSaved={handleSaved}
             onDeleted={handleDeleted}
             onDirtyChange={setDirty}
             onOpenSidebar={() => setSidebarOpen(true)}
+            onBack={() => navigate({ name: 'posts' })}
           />
         )}
 
-        {selection.type === 'post' && docLoading && (
+        {view.name === 'editor' && docLoading && (
           <div className="admin-loading">
             <button
               type="button"
               className="icon-btn admin-loading__menu"
               onClick={() => setSidebarOpen(true)}
-              aria-label="打开文章列表"
+              aria-label="打开菜单"
             >
               <Icon name="menu" size={18} />
             </button>
@@ -425,13 +465,13 @@ export function Workspace() {
           </div>
         )}
 
-        {selection.type === 'post' && !docLoading && docError && (
+        {view.name === 'editor' && !docLoading && docError && (
           <div className="admin-error">
             <button
               type="button"
               className="icon-btn admin-loading__menu"
               onClick={() => setSidebarOpen(true)}
-              aria-label="打开文章列表"
+              aria-label="打开菜单"
             >
               <Icon name="menu" size={18} />
             </button>
@@ -439,26 +479,28 @@ export function Workspace() {
             <h2>文章读取失败</h2>
             <p>{docError}</p>
             <div className="admin-error__actions">
-              <button type="button" className="btn-ghost" onClick={() => setDocReload((n) => n + 1)}>
-                重试
-              </button>
-              <button type="button" className="btn-ghost" onClick={() => navigate({ type: 'none' })}>
-                返回工作台
-              </button>
+              <Button onClick={() => setDocReload((value) => value + 1)}>重试</Button>
+              <Button theme="borderless" onClick={() => navigate({ name: 'posts' })}>
+                返回文章管理
+              </Button>
             </div>
           </div>
         )}
 
-        {selection.type === 'post' && !docLoading && doc && (
+        {view.name === 'editor' && !docLoading && doc && (
           <EditorView
-            key={doc.slug}
+            key={`editor-${editorKey}`}
             initial={{ mode: 'edit', doc }}
             client={client}
             existingSlugs={editorSlugs}
+            pendingBuildAt={pendingBuildAt}
+            building={building}
+            onBuild={handleBuild}
             onSaved={handleSaved}
             onDeleted={handleDeleted}
             onDirtyChange={setDirty}
             onOpenSidebar={() => setSidebarOpen(true)}
+            onBack={() => navigate({ name: 'posts' })}
           />
         )}
       </main>

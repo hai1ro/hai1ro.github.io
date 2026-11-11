@@ -943,9 +943,9 @@ html[data-theme='dark'] .prose pre.astro-code span {
 }
 
 .chip[data-active='true'] {
-  border-color: var(--text);
-  background: var(--text);
-  color: var(--bg);
+  border-color: var(--semi-color-primary);
+  background: var(--semi-color-primary);
+  color: #fff;
 }
 
 .chip em {

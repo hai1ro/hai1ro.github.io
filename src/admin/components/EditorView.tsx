@@ -1,14 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button, Modal, Toast } from '@douyinfe/semi-ui';
-import { EditorContent } from '@tiptap/react';
-import { DragHandle } from '@tiptap/extension-drag-handle-react';
-import { useBlogEditor } from '../editor/useBlogEditor';
-import { SlashMenu } from '../editor/SlashMenu';
-import { EditorToolbar } from '../editor/EditorToolbar';
-import { EditorBubbleMenu } from '../editor/EditorBubbleMenu';
+import { MarkdownEditor, type MarkdownEditorHandle } from '../editor/MarkdownEditor';
+import { MarkdownPreview } from '../editor/MarkdownPreview';
+import { MarkdownToolbar } from '../editor/MarkdownToolbar';
 import { MetaBar } from './MetaBar';
 import { SettingsPanel } from './SettingsPanel';
-import { PreviewSheet } from './PreviewSheet';
 import { Icon } from './icons';
 import type { GitHubClient } from '../github/client';
 import {
@@ -20,7 +16,6 @@ import {
   type PostDocument,
 } from '../data/posts';
 import { emptyFrontmatter, type PostFrontmatter } from '@/lib/frontmatter';
-import { htmlToMarkdown, markdownToHtml, normalizeMarkdown } from '@/lib/markdown';
 import { countText, deriveDescription } from '@/lib/text';
 import { isValidSlug, suggestedSlug, uniqueSlug } from '@/lib/slug';
 import { todayISO } from '@/lib/date';
@@ -30,14 +25,20 @@ type EditorInitial =
   | { mode: 'new'; slug: string }
   | { mode: 'edit'; doc: PostDocument };
 
+type ViewMode = 'edit' | 'split' | 'preview';
+
 interface Props {
   initial: EditorInitial;
   client: GitHubClient;
   existingSlugs: string[];
+  pendingBuildAt: string | null;
+  building: boolean;
+  onBuild: () => void;
   onSaved: (info: { slug: string; isNew: boolean; title: string }) => void;
   onDeleted: () => void;
   onDirtyChange: (dirty: boolean) => void;
   onOpenSidebar: () => void;
+  onBack: () => void;
 }
 
 function formatClock(date: Date): string {
@@ -48,10 +49,14 @@ export function EditorView({
   initial,
   client,
   existingSlugs,
+  pendingBuildAt,
+  building,
+  onBuild,
   onSaved,
   onDeleted,
   onDirtyChange,
   onOpenSidebar,
+  onBack,
 }: Props) {
   const editingDoc = initial.mode === 'edit' ? initial.doc : null;
 
@@ -70,26 +75,24 @@ export function EditorView({
   const [slugTouched, setSlugTouched] = useState(initial.mode === 'edit');
   const [sha, setSha] = useState<string | undefined>(editingDoc?.sha);
   const [isNew, setIsNew] = useState(initial.mode === 'new');
-  const [wasPublished, setWasPublished] = useState(
-    initial.mode === 'edit' ? !initial.doc.frontmatter.draft : false,
-  );
   const [dirty, setDirty] = useState(initial.mode === 'new');
   const [saving, setSaving] = useState(false);
-  const [mode, setMode] = useState<'rich' | 'source'>('rich');
-  const [sourceValue, setSourceValue] = useState(editingDoc?.body ?? '');
+  const [body, setBody] = useState(editingDoc?.body ?? '');
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    if (typeof window === 'undefined') return 'edit';
+    return window.matchMedia('(min-width: 1100px)').matches ? 'split' : 'edit';
+  });
   const [settingsOpen, setSettingsOpen] = useState(initial.mode === 'new');
-  const [previewOpen, setPreviewOpen] = useState(false);
-  const [previewHtml, setPreviewHtml] = useState('');
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [coverUploading, setCoverUploading] = useState(false);
-  const [inlineUploading, setInlineUploading] = useState(false);
+  const [imageUploading, setImageUploading] = useState(false);
+  const { theme, toggle: toggleTheme } = useTheme();
 
   const titleRef = useRef<HTMLTextAreaElement>(null);
-  const sourceRef = useRef<HTMLTextAreaElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
   const inlineImageRef = useRef<HTMLInputElement>(null);
+  const editorRef = useRef<MarkdownEditorHandle>(null);
   const savingRef = useRef(false);
-  const { theme, toggle: toggleTheme } = useTheme();
 
   const markDirty = useCallback(() => setDirty(true), []);
 
@@ -101,13 +104,12 @@ export function EditorView({
 
   const handleImageUpload = useCallback(
     async (file: File) => {
-      setInlineUploading(true);
+      setImageUploading(true);
       try {
         const image = await uploadImage(client, file);
-        Toast.success({ content: '图片已上传到仓库', duration: 2 });
         return image.url;
       } finally {
-        setInlineUploading(false);
+        setImageUploading(false);
       }
     },
     [client],
@@ -120,35 +122,12 @@ export function EditorView({
     });
   }, []);
 
-  const editor = useBlogEditor({
-    initialMarkdown: editingDoc?.body ?? '',
-    onImageUpload: handleImageUpload,
-    onImageError: handleImageError,
-  });
-
-  useEffect(() => {
-    if (!editor) return;
-    const onUpdate = () => markDirty();
-    editor.on('update', onUpdate);
-    return () => {
-      editor.off('update', onUpdate);
-    };
-  }, [editor, markDirty]);
-
   useEffect(() => {
     const element = titleRef.current;
     if (!element) return;
     element.style.height = '0px';
     element.style.height = `${element.scrollHeight}px`;
   }, [frontmatter.title]);
-
-  useEffect(() => {
-    if (mode !== 'source') return;
-    const element = sourceRef.current;
-    if (!element) return;
-    element.style.height = '0px';
-    element.style.height = `${element.scrollHeight}px`;
-  }, [mode, sourceValue]);
 
   useEffect(() => {
     if (!isNew) return;
@@ -181,18 +160,6 @@ export function EditorView({
     markDirty();
   };
 
-  const switchMode = (next: 'rich' | 'source') => {
-    if (next === mode) return;
-    if (next === 'source') {
-      setSourceValue(htmlToMarkdown(editor?.getHTML() ?? ''));
-      setMode('source');
-      return;
-    }
-    editor?.commands.setContent(markdownToHtml(sourceValue), { emitUpdate: false });
-    setMode('rich');
-    window.requestAnimationFrame(() => editor?.commands.focus());
-  };
-
   const handleSave = useCallback(async () => {
     if (savingRef.current) return;
 
@@ -220,49 +187,27 @@ export function EditorView({
     const wasNew = isNew;
 
     try {
-      const markdown =
-        mode === 'source'
-          ? normalizeMarkdown(sourceValue)
-          : htmlToMarkdown(editor?.getHTML() ?? '');
-
       const result = await saveDocument(client, {
         slug,
         frontmatter,
-        body: markdown,
+        body,
         extra,
         sha,
         isNew,
-        wasPublished,
       });
 
       setSha(result.sha);
       setFrontmatter(result.frontmatter);
-      setWasPublished(!result.frontmatter.draft);
       setIsNew(false);
       setDirty(false);
       setLastSavedAt(new Date());
-      if (mode === 'source') setSourceValue(markdown);
 
-      if (result.dispatchError) {
-        Toast.warning({
-          content: `已保存到 GitHub，但触发构建失败：${result.dispatchError} 请到 Actions 手动运行 Deploy to GitHub Pages。`,
-          duration: 8,
-        });
-      } else if (result.frontmatter.draft) {
-        Toast.success({
-          content: wasPublished
-            ? '已转为草稿并触发构建，文章会从站点移除。'
-            : '草稿已保存到 GitHub，不会触发 Pages 构建。',
-          duration: 3,
-        });
-      } else {
-        Toast.success({
-          content: wasNew
-            ? '文章已发布，已触发 GitHub Pages 构建。'
-            : '修改已发布，已触发 GitHub Pages 构建。',
-          duration: 3,
-        });
-      }
+      Toast.success({
+        content: result.frontmatter.draft
+          ? '草稿已保存到 GitHub。需要点击「构建站点」后才会反映到网站。'
+          : '已保存到 GitHub。点击「构建站点」后网站才会更新。',
+        duration: 4,
+      });
 
       onSaved({ slug, isNew: wasNew, title: result.frontmatter.title });
     } catch (error) {
@@ -275,18 +220,15 @@ export function EditorView({
       setSaving(false);
     }
   }, [
+    body,
     client,
-    editor,
     existingSlugs,
     extra,
     frontmatter,
     isNew,
-    mode,
     onSaved,
     sha,
     slug,
-    sourceValue,
-    wasPublished,
   ]);
 
   useEffect(() => {
@@ -305,7 +247,7 @@ export function EditorView({
     try {
       const image = await uploadImage(client, file);
       patchFrontmatter({ cover: image.url });
-      Toast.success({ content: '封面已上传', duration: 2 });
+      Toast.success({ content: '封面上传成功，保存后生效。', duration: 3 });
     } catch (error) {
       Toast.error({
         content: error instanceof Error ? error.message : '封面上传失败',
@@ -318,46 +260,33 @@ export function EditorView({
 
   const handleInlineImage = async (file: File) => {
     try {
-      const url = await handleImageUpload(file);
-      editor?.chain().focus().setImage({ src: url }).run();
+      const image = await uploadImage(client, file);
+      editorRef.current?.insertImage(image.url, file.name.replace(/\.[^.]+$/, ''));
+      markDirty();
     } catch (error) {
       handleImageError(error);
     }
-  };
-
-  const openPreview = () => {
-    const html = mode === 'source' ? markdownToHtml(sourceValue) : (editor?.getHTML() ?? '');
-    setPreviewHtml(html);
-    setPreviewOpen(true);
   };
 
   const handleDelete = () => {
     if (isNew || !sha) return;
     Modal.confirm({
       title: '删除这篇文章？',
-      content: `《${frontmatter.title || slug}》的 Markdown 文件会从 GitHub 仓库中删除，无法撤销。`,
+      content: `《${frontmatter.title || slug}》的 Markdown 文件会从 GitHub 仓库中删除。删除后需要点击「构建站点」才会从网站移除。`,
       okText: '删除',
       cancelText: '取消',
       okButtonProps: { type: 'danger', theme: 'solid' },
       onOk: async () => {
         try {
-          const result = await deleteDocument(client, {
+          await deleteDocument(client, {
             path: postPath(slug),
             sha,
             title: frontmatter.title || slug,
-            published: !frontmatter.draft,
           });
-
-          if (result.dispatchError) {
-            Toast.warning({
-              content: `文章已删除，但触发构建失败：${result.dispatchError} 请到 Actions 手动运行部署。`,
-              duration: 8,
-            });
-          } else if (frontmatter.draft) {
-            Toast.success({ content: '草稿已删除，不会触发 Pages 构建。', duration: 3 });
-          } else {
-            Toast.success({ content: '文章已删除，已触发 GitHub Pages 构建。', duration: 3 });
-          }
+          Toast.success({
+            content: '已删除并提交到 GitHub。点击「构建站点」后从网站移除。',
+            duration: 4,
+          });
           onDeleted();
         } catch (error) {
           Toast.error({
@@ -369,21 +298,18 @@ export function EditorView({
     });
   };
 
-  const stats = countText(mode === 'source' ? sourceValue : (editor?.getText() ?? ''));
+  const stats = countText(body);
   const statusText = saving
     ? '正在提交…'
     : dirty
       ? '有未保存的修改'
-      : lastSavedAt
-        ? `已保存 ${formatClock(lastSavedAt)}`
-        : isNew
-          ? '尚未保存'
-          : '已从 GitHub 加载';
-  const saveLabel = frontmatter.draft
-    ? '保存草稿'
-    : isNew
-      ? '发布文章'
-      : '发布更新';
+      : pendingBuildAt
+        ? '已保存 · 未构建'
+        : lastSavedAt
+          ? `已保存 ${formatClock(lastSavedAt)}`
+          : isNew
+            ? '尚未保存'
+            : '已从 GitHub 加载';
   const targetUrl = `/posts/${slug}/`;
 
   return (
@@ -394,9 +320,13 @@ export function EditorView({
             type="button"
             className="icon-btn editor-menu-btn"
             onClick={onOpenSidebar}
-            aria-label="打开文章列表"
+            aria-label="打开菜单"
           >
             <Icon name="menu" size={18} />
+          </button>
+          <button type="button" className="editor-back" onClick={onBack}>
+            <Icon name="arrow-left" size={16} />
+            文章管理
           </button>
           <div className="editor-breadcrumb editor-breadcrumb--doc">
             <span>文章</span>
@@ -410,30 +340,38 @@ export function EditorView({
         </div>
 
         <div className="editor-topbar__actions">
-          <div className="mode-switch" role="group" aria-label="编辑模式">
+          <div className="mode-switch" role="group" aria-label="编辑视图">
             <button
               type="button"
-              data-active={mode === 'rich'}
-              onClick={() => switchMode('rich')}
+              data-active={viewMode === 'edit'}
+              onClick={() => setViewMode('edit')}
             >
-              富文本
+              编辑
             </button>
             <button
               type="button"
-              data-active={mode === 'source'}
-              onClick={() => switchMode('source')}
+              data-active={viewMode === 'split'}
+              onClick={() => setViewMode('split')}
             >
-              Markdown
+              分屏
+            </button>
+            <button
+              type="button"
+              data-active={viewMode === 'preview'}
+              onClick={() => setViewMode('preview')}
+            >
+              预览
             </button>
           </div>
 
           <Button
             theme="borderless"
-            icon={<Icon name="eye" size={16} />}
-            onClick={openPreview}
-            className="topbar-preview"
+            icon={<Icon name="refresh" size={15} />}
+            loading={building}
+            onClick={onBuild}
+            className={`topbar-build ${pendingBuildAt ? 'has-pending' : ''}`}
           >
-            预览
+            构建站点
           </Button>
 
           <Button
@@ -441,11 +379,10 @@ export function EditorView({
             theme="solid"
             icon={<Icon name="send" size={15} />}
             loading={saving}
-            disabled={mode === 'rich' && !editor}
             onClick={handleSave}
             className="topbar-save"
           >
-            {saveLabel}
+            保存
           </Button>
 
           {!isNew && !frontmatter.draft && (
@@ -473,15 +410,20 @@ export function EditorView({
         </div>
       </header>
 
-      {mode === 'rich' && editor && <EditorToolbar editor={editor} onPickImage={() => inlineImageRef.current?.click()} />}
+      {viewMode !== 'preview' && (
+        <MarkdownToolbar
+          editorRef={editorRef}
+          onPickImage={() => inlineImageRef.current?.click()}
+        />
+      )}
 
       <div className="editor-scroll">
-        <div className="editor-canvas">
+        <div className="editor-canvas" data-wide={viewMode === 'split'}>
           <div className="editor-kicker">
             <span>{isNew ? 'NEW POST' : 'EDIT POST'}</span>
             <span className="editor-kicker__line" />
-            <span>{dirty ? '未提交' : '已同步到 GitHub'}</span>
-            {inlineUploading && <span className="editor-kicker__uploading">图片上传中…</span>}
+            <span>{dirty ? '未提交' : '已提交到 GitHub'}</span>
+            {imageUploading && <span className="editor-kicker__uploading">图片上传中…</span>}
           </div>
 
           <textarea
@@ -495,7 +437,7 @@ export function EditorView({
             onKeyDown={(event) => {
               if (event.key === 'Enter' && !event.shiftKey) {
                 event.preventDefault();
-                editor?.commands.focus('start');
+                editorRef.current?.focus();
               }
             }}
           />
@@ -525,65 +467,47 @@ export function EditorView({
               onSelectCover={handleCoverUpload}
               onRemoveCover={() => patchFrontmatter({ cover: undefined, coverAlt: undefined })}
               onDeriveDescription={() => {
-                const text = mode === 'source' ? sourceValue : (editor?.getText() ?? '');
-                patchFrontmatter({ description: deriveDescription(text) });
+                patchFrontmatter({ description: deriveDescription(body) });
               }}
               onDelete={handleDelete}
               canDelete={!isNew}
             />
           )}
 
-          {mode === 'rich' ? (
-            <div className="editor-body">
-              {editor ? (
-                <>
-                  <EditorContent editor={editor} />
-                  <EditorBubbleMenu editor={editor} />
-                  <SlashMenu editor={editor} onPickImage={() => inlineImageRef.current?.click()} />
-                  <DragHandle editor={editor} className="drag-handle" nested>
-                    <span className="drag-handle__inner" title="拖动排序">
-                      <Icon name="grip" size={16} />
-                    </span>
-                  </DragHandle>
-                </>
-              ) : (
-                <div className="editor-loading">正在准备编辑器…</div>
-              )}
-            </div>
-          ) : (
-            <div className="editor-source">
-              <div className="editor-source__hint">
-                直接编辑 Markdown 正文（frontmatter 由上方属性面板管理）。
-                切换回富文本时，不支持的 HTML 片段可能会被丢弃。
-              </div>
-              <textarea
-                ref={sourceRef}
-                className="editor-source__textarea"
-                value={sourceValue}
-                spellCheck={false}
-                onChange={(event) => {
-                  setSourceValue(event.target.value);
+          <div className="editor-workspace" data-mode={viewMode}>
+            <div className="editor-pane" hidden={viewMode === 'preview'}>
+              <MarkdownEditor
+                ref={editorRef}
+                initialValue={body}
+                onChange={(value) => {
+                  setBody(value);
                   markDirty();
                 }}
+                onSave={handleSave}
+                onImageUpload={handleImageUpload}
+                onImageError={handleImageError}
+                placeholder="开始写 Markdown…"
               />
             </div>
-          )}
+            <div className="editor-pane editor-pane--preview" hidden={viewMode === 'edit'}>
+              <MarkdownPreview markdown={body} />
+            </div>
+          </div>
 
           <footer className="editor-footer">
             <span>
               {stats.chars} 字 · 约 {stats.minutes} 分钟阅读
             </span>
             <span className="editor-footer__path">/posts/{slug}/</span>
-            {isNew ? (
-              <span>保存后可在 GitHub 查看</span>
-            ) : (
+            <span>保存只提交，点击「构建站点」后才更新网站</span>
+            {!isNew && (
               <a
                 href={githubFileUrl(client, postPath(slug))}
                 target="_blank"
                 rel="noopener noreferrer"
               >
                 <Icon name="github" size={14} />
-                在 GitHub 查看
+                GitHub
               </a>
             )}
           </footer>
@@ -600,15 +524,6 @@ export function EditorView({
           if (file) void handleInlineImage(file);
           event.target.value = '';
         }}
-      />
-
-      <PreviewSheet
-        visible={previewOpen}
-        onClose={() => setPreviewOpen(false)}
-        html={previewHtml}
-        frontmatter={frontmatter}
-        slug={slug}
-        cover={frontmatter.cover}
       />
     </div>
   );
