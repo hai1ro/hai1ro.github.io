@@ -5,6 +5,8 @@ date: 2026-11-12
 tags:
   - Markdown
   - 示例
+cover: /images/covers/markdown-acg.svg
+coverAlt: 紫粉色渐变与星形装饰的 Markdown 封面
 ---
 
 这是一篇用于检查 Markdown 渲染效果的演示文章。
@@ -54,9 +56,9 @@ export function greet(name: string): string {
 
 | 语法 | 支持 | 备注 |
 | --- | --- | --- |
-| 标题 | ✅ | h2–h4 |
-| 表格 | ✅ | GFM |
-| 代码高亮 | ✅ | 多种语言 |
+| 标题 | 支持 | h2–h4 |
+| 表格 | 支持 | GFM |
+| 代码高亮 | 支持 | 多种语言 |
 
 ## 分割线
 

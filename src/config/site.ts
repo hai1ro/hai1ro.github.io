@@ -4,9 +4,10 @@ export const siteConfig = {
   /** 站点描述 / SEO 描述，可自行修改 */
   description: '个人博客',
   author: {
-    /** 只使用仓库所有者的 GitHub 用户名，不预设任何个人简介 */
+    /** 只使用仓库所有者的 GitHub 用户名和头像，不预设个人简介 */
     name: 'Hai1ro',
     github: 'hai1ro',
+    avatar: 'https://github.com/hai1ro.png?size=240',
   },
   /** 页头导航 */
   nav: [

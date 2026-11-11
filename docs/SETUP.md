@@ -8,7 +8,7 @@
 
 - Astro 5：静态页面、内容集合、RSS、sitemap
 - React 18 + Semi Design：`/admin` 管理后台
-- CodeMirror 6 + marked + highlight.js：Markdown 源码编辑器、实时预览
+- CodeMirror 6：Typora 风格 Markdown 编辑器（所见即所得 / 源码切换）
 - GitHub Contents API：文章与图片的读写
 - GitHub OAuth（Cloudflare Worker 代理）+ Personal Access Token
 - GitHub Pages + GitHub Actions
@@ -67,7 +67,7 @@ featured: false
 
 ### 保存与构建
 
-后台默认进入工作台，导航包含「工作台 / 文章管理」。编辑器使用 Markdown 源码 + 实时预览，支持编辑、分屏、预览三种视图。
+后台默认进入工作台，导航包含「工作台 / 文章管理」。编辑器是单栏 Typora 风格：非当前行隐藏 Markdown 标记并直接渲染排版，光标所在行显示源码；顶部可切换「所见即所得 / 源码」。
 
 - 新建、编辑、删除文章：只提交到 GitHub，**不会自动触发 GitHub Actions**。
 - 图片上传：只提交图片，不会触发构建。
@@ -173,3 +173,10 @@ pnpm sync       # 生成 Astro 类型
 - **没有仓库写权限**：检查 Token scope，或 OAuth 账号对目标仓库是否有 push 权限。
 - **保存冲突**：文件在别处被修改，刷新后台后重试。
 - **图片上传失败**：支持 PNG / JPEG / WebP / GIF / AVIF，单张不超过 4 MB，不允许 SVG。
+
+## 公共站点视觉
+
+- 首页使用 ACG 风格：`src/styles/acg.css` 只作用于 `.site-body`，后台不加载，因此 `/admin` 仍保持 Semi Design 的实用风格。
+- GitHub 头像来自 `siteConfig.author.avatar`，当前为 `https://github.com/hai1ro.png?size=240`。
+- 修改站点标题、描述、GitHub 用户名或头像，请编辑 `src/config/site.ts`。
+- 演示文章的封面在 `public/images/covers/markdown-acg.svg`，通过 frontmatter 的 `cover` 字段引用。

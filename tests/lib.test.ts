@@ -3,7 +3,6 @@ import { isValidSlug, slugify, suggestedSlug, uniqueSlug } from '../src/lib/slug
 import { countText, deriveDescription } from '../src/lib/text';
 import { formatDateCN, toISODate } from '../src/lib/date';
 import { parsePostSource, stringifyPostSource } from '../src/lib/frontmatter';
-import { markdownToHtml } from '../src/lib/markdown';
 
 describe('slug', () => {
   it('slugifies ASCII titles', () => {
@@ -89,22 +88,5 @@ custom: value
     expect(reparsed.frontmatter.tags).toEqual(['Astro']);
     expect(reparsed.extra).toEqual({ custom: 'value' });
     expect(reparsed.body).toContain('## 正文');
-  });
-});
-
-describe('markdown rendering', () => {
-  it('renders GFM table and task list', () => {
-    const html = markdownToHtml('- [x] 完成\n\n| a | b |\n|---|---|\n| 1 | 2 |\n');
-    expect(html).toContain('<table>');
-    expect(html).toContain('type="checkbox"');
-    expect(html).toContain('完成');
-    expect(html).toContain('task-list-item');
-    expect(html).toContain('contains-task-list');
-  });
-
-  it('highlights fenced code', () => {
-    const html = markdownToHtml('\u0060\u0060\u0060ts\nconst value = 1;\n\u0060\u0060\u0060\n');
-    expect(html).toContain('hljs');
-    expect(html).toContain('const');
   });
 });

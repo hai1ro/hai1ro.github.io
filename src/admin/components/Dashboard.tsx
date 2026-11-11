@@ -246,7 +246,7 @@ export function Dashboard({
               <section className="admin-card">
                 <h2>写作说明</h2>
                 <ul className="admin-tips">
-                  <li>Markdown 源码 + 实时预览，支持编辑 / 分屏 / 预览三种视图</li>
+                  <li>Typora 风格单栏编辑器，非当前行隐藏 Markdown 标记</li>
                   <li>工具栏可以插入标题、列表、表格、代码块、链接和图片</li>
                   <li>保存文章只提交到 GitHub，不会自动构建</li>
                   <li>修改多篇文章后，在「构建站点」统一发布一次</li>

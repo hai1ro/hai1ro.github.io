@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button, Modal, Toast } from '@douyinfe/semi-ui';
 import { MarkdownEditor, type MarkdownEditorHandle } from '../editor/MarkdownEditor';
-import { MarkdownPreview } from '../editor/MarkdownPreview';
 import { MarkdownToolbar } from '../editor/MarkdownToolbar';
 import { MetaBar } from './MetaBar';
 import { SettingsPanel } from './SettingsPanel';
@@ -24,8 +23,6 @@ import { useTheme } from '../hooks/useTheme';
 type EditorInitial =
   | { mode: 'new'; slug: string }
   | { mode: 'edit'; doc: PostDocument };
-
-type ViewMode = 'edit' | 'split' | 'preview';
 
 interface Props {
   initial: EditorInitial;
@@ -78,10 +75,7 @@ export function EditorView({
   const [dirty, setDirty] = useState(initial.mode === 'new');
   const [saving, setSaving] = useState(false);
   const [body, setBody] = useState(editingDoc?.body ?? '');
-  const [viewMode, setViewMode] = useState<ViewMode>(() => {
-    if (typeof window === 'undefined') return 'edit';
-    return window.matchMedia('(min-width: 1100px)').matches ? 'split' : 'edit';
-  });
+  const [wysiwyg, setWysiwyg] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(initial.mode === 'new');
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [coverUploading, setCoverUploading] = useState(false);
@@ -340,27 +334,22 @@ export function EditorView({
         </div>
 
         <div className="editor-topbar__actions">
-          <div className="mode-switch" role="group" aria-label="编辑视图">
+          <div className="mode-switch" role="group" aria-label="编辑模式">
             <button
               type="button"
-              data-active={viewMode === 'edit'}
-              onClick={() => setViewMode('edit')}
+              data-active={wysiwyg}
+              onClick={() => setWysiwyg(true)}
+              title="隐藏 Markdown 标记，直接看到排版"
             >
-              编辑
+              所见即所得
             </button>
             <button
               type="button"
-              data-active={viewMode === 'split'}
-              onClick={() => setViewMode('split')}
+              data-active={!wysiwyg}
+              onClick={() => setWysiwyg(false)}
+              title="显示完整 Markdown 源码"
             >
-              分屏
-            </button>
-            <button
-              type="button"
-              data-active={viewMode === 'preview'}
-              onClick={() => setViewMode('preview')}
-            >
-              预览
+              源码
             </button>
           </div>
 
@@ -410,15 +399,13 @@ export function EditorView({
         </div>
       </header>
 
-      {viewMode !== 'preview' && (
-        <MarkdownToolbar
-          editorRef={editorRef}
-          onPickImage={() => inlineImageRef.current?.click()}
-        />
-      )}
+      <MarkdownToolbar
+        editorRef={editorRef}
+        onPickImage={() => inlineImageRef.current?.click()}
+      />
 
       <div className="editor-scroll">
-        <div className="editor-canvas" data-wide={viewMode === 'split'}>
+        <div className="editor-canvas">
           <div className="editor-kicker">
             <span>{isNew ? 'NEW POST' : 'EDIT POST'}</span>
             <span className="editor-kicker__line" />
@@ -474,11 +461,12 @@ export function EditorView({
             />
           )}
 
-          <div className="editor-workspace" data-mode={viewMode}>
-            <div className="editor-pane" hidden={viewMode === 'preview'}>
+          <div className="editor-workspace">
+            <div className="editor-pane">
               <MarkdownEditor
                 ref={editorRef}
                 initialValue={body}
+                wysiwyg={wysiwyg}
                 onChange={(value) => {
                   setBody(value);
                   markDirty();
@@ -488,9 +476,6 @@ export function EditorView({
                 onImageError={handleImageError}
                 placeholder="开始写 Markdown…"
               />
-            </div>
-            <div className="editor-pane editor-pane--preview" hidden={viewMode === 'edit'}>
-              <MarkdownPreview markdown={body} />
             </div>
           </div>
 

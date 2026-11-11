@@ -1,43 +1,171 @@
 ---
 import BaseLayout from '@/layouts/BaseLayout.astro';
-import PostRow from '@/components/PostRow.astro';
+import Icon from '@/components/Icon.astro';
 import { siteConfig } from '@/config/site';
-import { getAllPosts } from '@/lib/posts';
+import { collectTags, getAllPosts, postHref, readingMinutes, tagHref } from '@/lib/posts';
+import { formatDateShort, toISODate } from '@/lib/date';
 
 const posts = await getAllPosts();
-const recent = posts.slice(0, 6);
+const tags = collectTags(posts);
+const visibleTags = tags.slice(0, 8);
+const cards = posts.slice(0, 4);
 ---
 
 <BaseLayout>
-  <header class="container page-head">
-    <h1>{siteConfig.title}</h1>
-    <p>{siteConfig.description}</p>
-  </header>
+  <section class="acg-hero">
+    <div class="acg-hero__glow acg-hero__glow--pink" aria-hidden="true"></div>
+    <div class="acg-hero__glow acg-hero__glow--cyan" aria-hidden="true"></div>
 
-  <section class="container section">
-    <div class="section-head">
-      <div>
-        <h2>文章</h2>
-        <span class="section-head__count">{posts.length} 篇</span>
+    <div class="container acg-hero__grid">
+      <div class="acg-hero__content">
+        <span class="acg-badge"><span class="acg-badge__star">✦</span> PERSONAL BLOG</span>
+        <h1 class="acg-title">
+          {siteConfig.title}<span class="acg-title__dot">.</span>
+        </h1>
+        <p class="acg-lede">{siteConfig.description}</p>
+
+        <div class="acg-actions">
+          <a class="acg-btn acg-btn--primary" href="/posts/">
+            浏览文章
+            <Icon name="arrow-right" size={16} />
+          </a>
+          <a
+            class="acg-btn"
+            href={`https://github.com/${siteConfig.author.github}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Icon name="github" size={16} />
+            GitHub
+          </a>
+        </div>
+
+        <div class="acg-stats">
+          <span><strong>{posts.length}</strong> 篇文章</span>
+          <span><strong>{tags.length}</strong> 个标签</span>
+          <span><strong>Markdown</strong> 写作</span>
+        </div>
       </div>
-      <a class="text-link" href="/posts/">全部文章 →</a>
+
+      <div class="acg-hero__side">
+        <div class="acg-avatar-card">
+          <div class="acg-avatar-ring">
+            <img
+              src={siteConfig.author.avatar}
+              alt={`${siteConfig.author.name} 的 GitHub 头像`}
+              width="240"
+              height="240"
+              loading="eager"
+              referrerpolicy="no-referrer"
+            />
+          </div>
+          <div class="acg-avatar-meta">
+            <strong>@{siteConfig.author.github}</strong>
+            <span>GitHub Avatar</span>
+          </div>
+          <span class="acg-float acg-float--one">✦</span>
+          <span class="acg-float acg-float--two">✧</span>
+          <span class="acg-float acg-float--three">✦</span>
+        </div>
+        <div class="acg-note-card">
+          <span class="acg-note-card__label">WRITING</span>
+          <p>用 Markdown 写作，用 GitHub 保存。</p>
+        </div>
+      </div>
     </div>
+  </section>
+
+  <section class="container acg-section">
+    <header class="acg-section__head">
+      <div>
+        <span class="acg-eyebrow">LATEST POSTS</span>
+        <h2>最近更新</h2>
+      </div>
+      <a class="acg-more" href="/posts/">全部文章 <span>→</span></a>
+    </header>
 
     {
-      recent.length > 0 ? (
-        <div class="post-list">
-          {recent.map((post) => (
-            <PostRow post={post} />
+      cards.length > 0 ? (
+        <div class="acg-post-grid">
+          {cards.map((post, index) => (
+            <a
+              class:list={['acg-post-card', index === 0 && 'acg-post-card--featured']}
+              href={postHref(post)}
+            >
+              <div class="acg-post-card__cover">
+                {post.data.cover ? (
+                  <img src={post.data.cover} alt={post.data.coverAlt ?? ''} loading="lazy" />
+                ) : (
+                  <div class="acg-post-card__placeholder" aria-hidden="true">
+                    <span>✦</span>
+                  </div>
+                )}
+              </div>
+              <div class="acg-post-card__body">
+                <div class="acg-post-card__meta">
+                  <time datetime={toISODate(post.data.date)}>{formatDateShort(post.data.date)}</time>
+                  {post.data.draft && <span class="acg-draft">草稿</span>}
+                  <span>{readingMinutes(post)} min</span>
+                </div>
+                <h3>{post.data.title}</h3>
+                {post.data.description && <p>{post.data.description}</p>}
+                <div class="acg-post-card__tags">
+                  {post.data.tags.slice(0, 3).map((tag) => (
+                    <span class="acg-tag">{tag}</span>
+                  ))}
+                </div>
+              </div>
+            </a>
           ))}
         </div>
       ) : (
-        <div class="home-empty">
+        <div class="acg-empty">
+          <span class="acg-empty__icon">✦</span>
           <p>还没有文章。</p>
-          <a class="btn btn--primary btn--small" href={siteConfig.adminPath}>
-            去后台写文章
-          </a>
+          <a class="acg-btn acg-btn--primary" href={siteConfig.adminPath}>去后台写文章</a>
         </div>
       )
     }
+  </section>
+
+  <section class="container acg-lower">
+    <div class="acg-panel">
+      <span class="acg-eyebrow">TAGS</span>
+      <h2>标签</h2>
+      <div class="acg-tag-cloud">
+        {visibleTags.length > 0 ? (
+          visibleTags.map((tag) => (
+            <a class="acg-tag acg-tag--link" href={tagHref(tag.name)}>
+              {tag.name}<em>{tag.count}</em>
+            </a>
+          ))
+        ) : (
+          <span class="acg-muted">暂无标签</span>
+        )}
+      </div>
+    </div>
+
+    <div class="acg-panel acg-panel--profile">
+      <img
+        class="acg-panel__avatar"
+        src={siteConfig.author.avatar}
+        alt=""
+        loading="lazy"
+        referrerpolicy="no-referrer"
+      />
+      <div>
+        <span class="acg-eyebrow">GITHUB</span>
+        <h2>@{siteConfig.author.github}</h2>
+        <p>代码与文章都在 GitHub 上。</p>
+        <a
+          class="acg-more"
+          href={`https://github.com/${siteConfig.author.github}`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          打开主页 <span>↗</span>
+        </a>
+      </div>
+    </div>
   </section>
 </BaseLayout>
