@@ -6,7 +6,7 @@ compatibility_date = "2026-01-01"
 # GITHUB_CLIENT_SECRET 千万不要写在这里，使用：
 #   npx wrangler secret put GITHUB_CLIENT_SECRET
 [vars]
-GITHUB_CLIENT_ID = "REPLACE_WITH_YOUR_OAUTH_APP_CLIENT_ID"
+GITHUB_CLIENT_ID = "Ov23liOJG0RqKkx61nXV"
 GITHUB_SCOPE = "repo read:user"
 
 # 允许接收 token 的前端来源，逗号分隔，不要带结尾斜杠。
