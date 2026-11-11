@@ -7,165 +7,192 @@ import { formatDateShort, toISODate } from '@/lib/date';
 
 const posts = await getAllPosts();
 const tags = collectTags(posts);
-const visibleTags = tags.slice(0, 8);
-const cards = posts.slice(0, 4);
+const latestDate = posts[0] ? formatDateShort(posts[0].data.date) : '—';
+const ticker = '♡  markdown  ♡  github  ♡  astro  ♡  personal blog  ♡  ';
 ---
 
 <BaseLayout>
-  <section class="acg-hero">
-    <div class="acg-hero__glow acg-hero__glow--pink" aria-hidden="true"></div>
-    <div class="acg-hero__glow acg-hero__glow--cyan" aria-hidden="true"></div>
+  <div class="cute-home">
+    <section class="cute-hero">
+      <div class="cute-hero__paper">
+        <span class="cute-tape cute-tape--left" aria-hidden="true"></span>
+        <span class="cute-tape cute-tape--right" aria-hidden="true"></span>
 
-    <div class="container acg-hero__grid">
-      <div class="acg-hero__content">
-        <span class="acg-badge"><span class="acg-badge__star">✦</span> PERSONAL BLOG</span>
-        <h1 class="acg-title">
-          {siteConfig.title}<span class="acg-title__dot">.</span>
-        </h1>
-        <p class="acg-lede">{siteConfig.description}</p>
+        <div class="cute-hero__grid">
+          <div class="cute-hero__copy">
+            <span class="cute-label">♡ PERSONAL BLOG</span>
+            <h1 class="cute-title">
+              {siteConfig.title}<span class="cute-title__heart">♡</span>
+            </h1>
+            <p class="cute-sub">{siteConfig.description}</p>
+            <p class="cute-small">用 Markdown 写文章，用 GitHub 保存。</p>
 
-        <div class="acg-actions">
-          <a class="acg-btn acg-btn--primary" href="/posts/">
-            浏览文章
-            <Icon name="arrow-right" size={16} />
-          </a>
-          <a
-            class="acg-btn"
-            href={`https://github.com/${siteConfig.author.github}`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Icon name="github" size={16} />
-            GitHub
-          </a>
-        </div>
+            <div class="cute-actions">
+              <a class="cute-btn cute-btn--pink" href="/posts/">翻翻文章 <span>→</span></a>
+              <a
+                class="cute-btn"
+                href={`https://github.com/${siteConfig.author.github}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Icon name="github" size={15} />
+                GitHub
+              </a>
+            </div>
 
-        <div class="acg-stats">
-          <span><strong>{posts.length}</strong> 篇文章</span>
-          <span><strong>{tags.length}</strong> 个标签</span>
-          <span><strong>Markdown</strong> 写作</span>
+            <div class="cute-stats">
+              <span class="cute-stat cute-stat--butter">
+                <strong>{String(posts.length).padStart(2, '0')}</strong>
+                <em>篇文章</em>
+              </span>
+              <span class="cute-stat cute-stat--mint">
+                <strong>{String(tags.length).padStart(2, '0')}</strong>
+                <em>个标签</em>
+              </span>
+              <span class="cute-stat cute-stat--sky">
+                <strong>MD</strong>
+                <em>写作格式</em>
+              </span>
+            </div>
+          </div>
+
+          <div class="cute-hero__photo">
+            <span class="cute-bubble">hello!</span>
+            <figure class="polaroid">
+              <span class="polaroid__tape" aria-hidden="true"></span>
+              <img
+                src={siteConfig.author.avatar}
+                alt={`${siteConfig.author.name} 的 GitHub 头像`}
+                width="240"
+                height="300"
+                loading="eager"
+                referrerpolicy="no-referrer"
+              />
+              <figcaption>
+                <span>@{siteConfig.author.github}</span>
+                <span class="polaroid__heart">♡</span>
+              </figcaption>
+            </figure>
+            <span class="cute-doodle cute-doodle--flower" aria-hidden="true">✿</span>
+            <span class="cute-doodle cute-doodle--star" aria-hidden="true">☆</span>
+            <a
+              class="cute-photo-link"
+              href={`https://github.com/${siteConfig.author.github}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              GITHUB ↗
+            </a>
+          </div>
         </div>
       </div>
 
-      <div class="acg-hero__side">
-        <div class="acg-avatar-card">
-          <div class="acg-avatar-ring">
+      <div class="cute-marquee" aria-hidden="true">
+        <div class="cute-marquee__track">
+          <span>{ticker}</span>
+          <span>{ticker}</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="cute-section">
+      <div class="cute-section__head">
+        <div>
+          <span class="cute-label">♡ LATEST</span>
+          <h2>最近写下的</h2>
+        </div>
+        <a class="cute-more" href="/posts/">全部文章 <span>→</span></a>
+      </div>
+
+      <div class="cute-layout">
+        <div class="cute-posts">
+          {
+            posts.length > 0 ? (
+              posts.slice(0, 4).map((post, index) => (
+                <a class:list={['postcard', `postcard--tilt-${(index % 3) + 1}`]} href={postHref(post)}>
+                  <span class="postcard__tape" aria-hidden="true"></span>
+                  <div class="postcard__cover">
+                    {post.data.cover ? (
+                      <img src={post.data.cover} alt={post.data.coverAlt ?? ''} loading="lazy" />
+                    ) : (
+                      <span class="postcard__placeholder" aria-hidden="true">♡</span>
+                    )}
+                  </div>
+                  <div class="postcard__body">
+                    <div class="postcard__meta">
+                      <time datetime={toISODate(post.data.date)}>{formatDateShort(post.data.date)}</time>
+                      <span>{readingMinutes(post)} min</span>
+                      {post.data.draft && <span class="postcard__draft">草稿</span>}
+                    </div>
+                    <h3>{post.data.title}</h3>
+                    {post.data.description && <p>{post.data.description}</p>}
+                    <div class="postcard__foot">
+                      <div class="postcard__tags">
+                        {post.data.tags.slice(0, 3).map((tag) => (
+                          <span class="cute-tag">{tag}</span>
+                        ))}
+                      </div>
+                      <span class="postcard__more">读一读 →</span>
+                    </div>
+                  </div>
+                </a>
+              ))
+            ) : (
+              <div class="cute-empty">
+                <span class="cute-empty__icon">♡</span>
+                <p>还没有文章。</p>
+                <a class="cute-btn cute-btn--pink" href={siteConfig.adminPath}>去后台写一篇</a>
+              </div>
+            )
+          }
+        </div>
+
+        <aside class="cute-side">
+          <div class="cute-note cute-note--profile">
             <img
               src={siteConfig.author.avatar}
-              alt={`${siteConfig.author.name} 的 GitHub 头像`}
-              width="240"
-              height="240"
-              loading="eager"
+              alt=""
+              loading="lazy"
               referrerpolicy="no-referrer"
             />
+            <div>
+              <span class="cute-label">GITHUB</span>
+              <strong>@{siteConfig.author.github}</strong>
+              <a
+                href={`https://github.com/${siteConfig.author.github}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                去主页玩 →
+              </a>
+            </div>
           </div>
-          <div class="acg-avatar-meta">
-            <strong>@{siteConfig.author.github}</strong>
-            <span>GitHub Avatar</span>
+
+          <div class="cute-note cute-note--tags">
+            <span class="cute-label">TAGS</span>
+            <div class="cute-tag-cloud">
+              {tags.length > 0 ? (
+                tags.slice(0, 8).map((tag) => (
+                  <a class="cute-tag" href={tagHref(tag.name)}>{tag.name}<em>{tag.count}</em></a>
+                ))
+              ) : (
+                <span class="cute-muted">还没有标签</span>
+              )}
+            </div>
           </div>
-          <span class="acg-float acg-float--one">✦</span>
-          <span class="acg-float acg-float--two">✧</span>
-          <span class="acg-float acg-float--three">✦</span>
-        </div>
-        <div class="acg-note-card">
-          <span class="acg-note-card__label">WRITING</span>
-          <p>用 Markdown 写作，用 GitHub 保存。</p>
-        </div>
-      </div>
-    </div>
-  </section>
 
-  <section class="container acg-section">
-    <header class="acg-section__head">
-      <div>
-        <span class="acg-eyebrow">LATEST POSTS</span>
-        <h2>最近更新</h2>
+          <div class="cute-note cute-note--about">
+            <span class="cute-label">ABOUT</span>
+            <p>{siteConfig.description}。内容用 Markdown 保存在 GitHub。</p>
+            <span class="cute-note__doodle" aria-hidden="true">✿</span>
+          </div>
+        </aside>
       </div>
-      <a class="acg-more" href="/posts/">全部文章 <span>→</span></a>
-    </header>
+    </section>
 
-    {
-      cards.length > 0 ? (
-        <div class="acg-post-grid">
-          {cards.map((post, index) => (
-            <a
-              class:list={['acg-post-card', index === 0 && 'acg-post-card--featured']}
-              href={postHref(post)}
-            >
-              <div class="acg-post-card__cover">
-                {post.data.cover ? (
-                  <img src={post.data.cover} alt={post.data.coverAlt ?? ''} loading="lazy" />
-                ) : (
-                  <div class="acg-post-card__placeholder" aria-hidden="true">
-                    <span>✦</span>
-                  </div>
-                )}
-              </div>
-              <div class="acg-post-card__body">
-                <div class="acg-post-card__meta">
-                  <time datetime={toISODate(post.data.date)}>{formatDateShort(post.data.date)}</time>
-                  {post.data.draft && <span class="acg-draft">草稿</span>}
-                  <span>{readingMinutes(post)} min</span>
-                </div>
-                <h3>{post.data.title}</h3>
-                {post.data.description && <p>{post.data.description}</p>}
-                <div class="acg-post-card__tags">
-                  {post.data.tags.slice(0, 3).map((tag) => (
-                    <span class="acg-tag">{tag}</span>
-                  ))}
-                </div>
-              </div>
-            </a>
-          ))}
-        </div>
-      ) : (
-        <div class="acg-empty">
-          <span class="acg-empty__icon">✦</span>
-          <p>还没有文章。</p>
-          <a class="acg-btn acg-btn--primary" href={siteConfig.adminPath}>去后台写文章</a>
-        </div>
-      )
-    }
-  </section>
-
-  <section class="container acg-lower">
-    <div class="acg-panel">
-      <span class="acg-eyebrow">TAGS</span>
-      <h2>标签</h2>
-      <div class="acg-tag-cloud">
-        {visibleTags.length > 0 ? (
-          visibleTags.map((tag) => (
-            <a class="acg-tag acg-tag--link" href={tagHref(tag.name)}>
-              {tag.name}<em>{tag.count}</em>
-            </a>
-          ))
-        ) : (
-          <span class="acg-muted">暂无标签</span>
-        )}
-      </div>
-    </div>
-
-    <div class="acg-panel acg-panel--profile">
-      <img
-        class="acg-panel__avatar"
-        src={siteConfig.author.avatar}
-        alt=""
-        loading="lazy"
-        referrerpolicy="no-referrer"
-      />
-      <div>
-        <span class="acg-eyebrow">GITHUB</span>
-        <h2>@{siteConfig.author.github}</h2>
-        <p>代码与文章都在 GitHub 上。</p>
-        <a
-          class="acg-more"
-          href={`https://github.com/${siteConfig.author.github}`}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          打开主页 <span>↗</span>
-        </a>
-      </div>
-    </div>
-  </section>
+    <footer class="cute-footer">
+      <span>♡ {siteConfig.title} · UPDATED {latestDate}</span>
+      <span>Made with Markdown & GitHub</span>
+    </footer>
+  </div>
 </BaseLayout>

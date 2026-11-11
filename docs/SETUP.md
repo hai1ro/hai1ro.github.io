@@ -176,7 +176,7 @@ pnpm sync       # 生成 Astro 类型
 
 ## 公共站点视觉
 
-- 首页使用 ACG 风格：`src/styles/acg.css` 只作用于 `.site-body`，后台不加载，因此 `/admin` 仍保持 Semi Design 的实用风格。
+- 首页使用奶油手账 / 贴纸风格：`src/styles/cute.css` 只作用于 `.site-body`，后台不加载，因此 `/admin` 仍保持 Semi Design 的实用风格。
 - GitHub 头像来自 `siteConfig.author.avatar`，当前为 `https://github.com/hai1ro.png?size=240`。
 - 修改站点标题、描述、GitHub 用户名或头像，请编辑 `src/config/site.ts`。
-- 演示文章的封面在 `public/images/covers/markdown-acg.svg`，通过 frontmatter 的 `cover` 字段引用。
+- 演示文章的封面在 `public/images/covers/markdown-cute.svg`，通过 frontmatter 的 `cover` 字段引用。

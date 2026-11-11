@@ -2,7 +2,7 @@
 import 'semi-ui-css';
 import '@/styles/tokens.css';
 import '@/styles/site.css';
-import '@/styles/acg.css';
+import '@/styles/cute.css';
 import SiteHeader from '@/components/SiteHeader.astro';
 import SiteFooter from '@/components/SiteFooter.astro';
 import { siteConfig } from '@/config/site';
@@ -54,10 +54,20 @@ const pageTitle = title ? `${title} · ${siteConfig.title}` : siteConfig.title;
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImage.href} />
 
+    {chrome && (
+      <>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+          href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&family=ZCOOL+KuaiLe&display=swap"
+          rel="stylesheet"
+        />
+      </>
+    )}
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="alternate" type="application/rss+xml" title={`${siteConfig.title} · RSS`} href="/rss.xml" />
-    <meta name="theme-color" content="#fbf8ff" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#100b1d" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#fff8ef" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#241b1a" media="(prefers-color-scheme: dark)" />
 
     <script is:inline>
       (function () {
