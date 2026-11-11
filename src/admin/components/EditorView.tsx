@@ -70,6 +70,9 @@ export function EditorView({
   const [slugTouched, setSlugTouched] = useState(initial.mode === 'edit');
   const [sha, setSha] = useState<string | undefined>(editingDoc?.sha);
   const [isNew, setIsNew] = useState(initial.mode === 'new');
+  const [wasPublished, setWasPublished] = useState(
+    initial.mode === 'edit' ? !initial.doc.frontmatter.draft : false,
+  );
   const [dirty, setDirty] = useState(initial.mode === 'new');
   const [saving, setSaving] = useState(false);
   const [mode, setMode] = useState<'rich' | 'source'>('rich');
@@ -229,24 +232,28 @@ export function EditorView({
         extra,
         sha,
         isNew,
+        wasPublished,
       });
 
       setSha(result.sha);
       setFrontmatter(result.frontmatter);
+      setWasPublished(!result.frontmatter.draft);
       setIsNew(false);
       setDirty(false);
       setLastSavedAt(new Date());
       if (mode === 'source') setSourceValue(markdown);
 
-      if (result.frontmatter.draft) {
-        Toast.success({
-          content: '草稿已保存到 GitHub，不会触发 Pages 构建。',
-          duration: 3,
-        });
-      } else if (result.dispatchError) {
+      if (result.dispatchError) {
         Toast.warning({
           content: `已保存到 GitHub，但触发构建失败：${result.dispatchError} 请到 Actions 手动运行 Deploy to GitHub Pages。`,
           duration: 8,
+        });
+      } else if (result.frontmatter.draft) {
+        Toast.success({
+          content: wasPublished
+            ? '已转为草稿并触发构建，文章会从站点移除。'
+            : '草稿已保存到 GitHub，不会触发 Pages 构建。',
+          duration: 3,
         });
       } else {
         Toast.success({
@@ -279,6 +286,7 @@ export function EditorView({
     sha,
     slug,
     sourceValue,
+    wasPublished,
   ]);
 
   useEffect(() => {

@@ -35,6 +35,8 @@ export interface SavePostOptions {
   extra: Record<string, unknown>;
   sha?: string;
   isNew: boolean;
+  /** 保存前是否已发布；用于判断“取消发布”是否需要重新构建 */
+  wasPublished?: boolean;
 }
 
 export interface SavePostResult {
@@ -220,9 +222,11 @@ export async function saveDocument(
   invalidatePostCache();
 
   // 草稿只提交，不触发 Actions；只有发布状态才主动触发 Pages 构建
-  const deployment = frontmatter.draft
-    ? { dispatched: false as const }
-    : await dispatchAfterChange(client);
+  const visibilityChanged = Boolean(options.wasPublished) && frontmatter.draft;
+  const shouldDeploy = !frontmatter.draft || visibilityChanged;
+  const deployment = shouldDeploy
+    ? await dispatchAfterChange(client)
+    : { dispatched: false as const };
 
   return {
     sha: result.content.sha,

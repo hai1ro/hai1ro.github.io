@@ -54,7 +54,7 @@ featured: false
 - `draft: true` 在开发环境可见，生产构建会排除。
 - 后台会保留 frontmatter 中未识别的字段。
 - 图片上传到 `public/images/uploads/YYYY/MM/`，使用内容哈希命名。
-- 仓库里保留了一篇已有草稿，可自行修改或删除；`src/content/posts/.gitkeep` 仅用于保留目录。
+- 仓库里保留了一篇已有文章（标题为《草稿：关于慢下来》），是否发布或删除由你决定；`src/content/posts/.gitkeep` 仅用于保留目录。
 
 ## 管理后台
 
@@ -67,8 +67,9 @@ featured: false
 
 ### 草稿与发布
 
-- 保存草稿：只提交 Markdown 到 GitHub，**不会触发 GitHub Actions / Pages 构建**。
+- 新建草稿 / 编辑草稿：只提交 Markdown 到 GitHub，**不会触发 GitHub Actions / Pages 构建**。
 - 发布或更新已发布文章：提交后调用 GitHub `repository_dispatch`（事件 `blog-publish`），触发一次 Pages 构建。
+- 已发布文章改为草稿（取消发布）：触发一次构建，从站点移除。
 - 删除草稿：不触发构建。
 - 删除已发布文章：触发构建。
 - 图片上传单独不会触发构建，等文章发布时一起生效。
