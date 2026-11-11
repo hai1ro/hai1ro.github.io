@@ -1,116 +1,43 @@
 ---
 import BaseLayout from '@/layouts/BaseLayout.astro';
-import Icon from '@/components/Icon.astro';
 import PostRow from '@/components/PostRow.astro';
 import { siteConfig } from '@/config/site';
-import { featuredPosts, getAllPosts, postHref } from '@/lib/posts';
+import { getAllPosts } from '@/lib/posts';
 
 const posts = await getAllPosts();
-const recent = featuredPosts(posts, 4);
-const latest = posts[0];
-const topics = ['写作', '代码', '设计', '工具'];
+const recent = posts.slice(0, 6);
 ---
 
 <BaseLayout>
-  <section class="hero">
-    <div class="container hero__grid">
-      <div class="hero__copy">
-        <p class="eyebrow">Writing · Code · Design</p>
-        <h1><span class="hero__first-line">在代码与文字之间，</span><br /><em>记录</em>一些想法。</h1>
-        <p class="hero__lede">
-          我是 {siteConfig.author.name}。这里放一些关于前端、产品与日常思考的长短文字。
-          不追热点，慢慢写，认真对待每一个句子。
-        </p>
-        <div class="hero__actions">
-          <a class="btn btn--primary" href={latest ? postHref(latest) : '/posts/'}>
-            阅读最新文章
-            <Icon name="arrow-right" size={16} />
-          </a>
-          <a class="btn btn--ghost" href="/about/">关于我</a>
-        </div>
-        <div class="hero__social">
-          <span>找到我</span>
-          {
-            siteConfig.social.map((item) => (
-              <a href={item.href} target={item.href.startsWith('http') ? '_blank' : undefined} rel={item.href.startsWith('http') ? 'noopener noreferrer' : undefined}>
-                <Icon name={item.icon} size={15} />
-                {item.label}
-              </a>
-            ))
-          }
-        </div>
-      </div>
+  <header class="container page-head">
+    <h1>{siteConfig.title}</h1>
+    <p>{siteConfig.description}</p>
+  </header>
 
-      <div class="hero__art" aria-hidden="true">
-        <div class="hero__orbit"></div>
-        <img
-          class="hero__avatar"
-          src={siteConfig.author.avatar}
-          alt=""
-          width="464"
-          height="464"
-          decoding="async"
-        />
-        <div class="hero__seal">
-          <span>海</span>
-          <span>SINCE<br />{siteConfig.startYear}</span>
-        </div>
-        <span class="hero__star">✳</span>
-      </div>
-    </div>
-  </section>
-
-  <section class="section section--tight">
-    <div class="container">
-      <div class="section-head reveal">
-        <div>
-          <p class="eyebrow">Latest</p>
-          <h2>最近写了什么</h2>
-        </div>
-        <a class="text-link" href="/posts/">
-          全部文章
-          <Icon name="arrow-right" size={15} />
-        </a>
-      </div>
-
-      {
-        recent.length > 0 ? (
-          <div class="post-list reveal">
-            {recent.map((post) => (
-              <PostRow post={post} />
-            ))}
-          </div>
-        ) : (
-          <div class="home-empty reveal">
-            <p class="serif">还没有文章。</p>
-            <a class="btn btn--ghost btn--small" href={siteConfig.adminPath}>
-              去后台写第一篇
-            </a>
-          </div>
-        )
-      }
-    </div>
-  </section>
-
-  <div class="container">
-    <section class="about-strip reveal" aria-labelledby="about-strip-title">
+  <section class="container section">
+    <div class="section-head">
       <div>
-        <p class="eyebrow">About this site</p>
-        <h2 id="about-strip-title">一个自己搭建的写作空间</h2>
-        <p>
-          没有平台算法，没有信息流。文章是仓库里的 Markdown 文件，后台是一个 Notion 风格的编辑器，
-          保存即提交到 GitHub，随后由 GitHub Actions 构建成你现在看到的静态页面。
-        </p>
-        <div class="about-strip__tech">
-          {topics.map((topic) => <span class="tag">{topic}</span>)}
-          <span class="tag">Astro</span>
-          <span class="tag">Semi Design</span>
-        </div>
+        <h2>文章</h2>
+        <span class="section-head__count">{posts.length} 篇</span>
       </div>
-      <a class="btn btn--ghost" href="/about/">
-        了解更多
-        <Icon name="arrow-up-right" size={15} />
-      </a>
-    </section>
-  </div>
+      <a class="text-link" href="/posts/">全部文章 →</a>
+    </div>
+
+    {
+      recent.length > 0 ? (
+        <div class="post-list">
+          {recent.map((post) => (
+            <PostRow post={post} />
+          ))}
+        </div>
+      ) : (
+        <div class="home-empty">
+          <p>还没有文章。</p>
+          <a class="btn btn--primary btn--small" href={siteConfig.adminPath}>
+            去后台写文章
+          </a>
+        </div>
+      )
+    }
+  </section>
 </BaseLayout>

@@ -175,6 +175,17 @@ export class GitHubClient {
     );
   }
 
+  /** 主动触发 Pages 构建（repository_dispatch），草稿保存不会调用 */
+  async dispatchBlogPublish(): Promise<void> {
+    await this.request(
+      `/repos/${encodeURIComponent(this.owner)}/${encodeURIComponent(this.repo)}/dispatches`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ event_type: 'blog-publish' }),
+      },
+    );
+  }
+
   deleteFile(options: {
     path: string;
     message: string;

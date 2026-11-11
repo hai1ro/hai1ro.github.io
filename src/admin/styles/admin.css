@@ -110,28 +110,8 @@
   margin-left: auto;
 }
 
-.new-post-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  height: 42px;
+.sidebar-new-btn {
   margin-top: 16px;
-  border: 1px solid var(--text);
-  border-radius: 10px;
-  background: var(--text);
-  color: var(--bg);
-  font-size: 13.5px;
-  font-weight: 500;
-  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
-}
-
-.new-post-btn:hover {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: #fff;
-  transform: translateY(-1px);
 }
 
 .sidebar-search {
@@ -2586,22 +2566,6 @@ html[data-theme='dark'] .github-btn {
   }
 }
 
-/* ---------- Semi theme bridge ---------- */
-
-/* Semi 的 CSS 可能晚于 tokens 注入，这里用更高优先级强制对齐博客主色 */
-body {
-  --semi-color-primary: var(--accent) !important;
-  --semi-color-primary-hover: var(--accent-hover) !important;
-  --semi-color-primary-active: var(--accent-hover) !important;
-  --semi-color-primary-light-default: var(--accent-soft) !important;
-  --semi-color-primary-light-hover: var(--accent-soft) !important;
-  --semi-color-primary-light-active: var(--accent-soft) !important;
-  --semi-color-link: var(--accent) !important;
-  --semi-color-link-hover: var(--accent-hover) !important;
-  --semi-color-link-active: var(--accent-hover) !important;
-  --semi-color-focus-border: var(--accent) !important;
-}
-
 .meta-bar__label {
   flex: none;
   white-space: nowrap;
@@ -2611,4 +2575,53 @@ body {
   margin-bottom: 10px;
   color: var(--text-3);
   font-size: 11.5px;
+}
+
+
+/* ---------- Semi 默认登录页 ---------- */
+
+.login {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  overflow-y: auto;
+  background: var(--semi-color-bg-2);
+}
+
+.login-panel {
+  display: block;
+  padding: 0;
+}
+
+.login-card {
+  width: min(400px, 100%);
+  padding: 28px;
+  border: 1px solid var(--semi-color-border);
+  border-radius: var(--semi-border-radius-medium);
+  background: var(--semi-color-bg-0);
+  box-shadow: var(--semi-shadow-elevated);
+}
+
+@media (max-width: 640px) {
+  .login {
+    padding: 16px;
+  }
+}
+
+.login-home {
+  display: inline-block;
+  margin-bottom: 18px;
+  color: var(--semi-color-text-2);
+  font-size: 12px;
+}
+
+.login-home:hover {
+  color: var(--semi-color-primary);
+}
+
+.login-oauth-btn {
+  margin-top: 20px;
 }

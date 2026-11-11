@@ -56,44 +56,10 @@ export function LoginScreen() {
 
   return (
     <div className="login">
-      <section className="login-intro">
-        <div className="login-intro__top">
-          <a className="login-brand" href="/">
-            <span className="login-brand__mark">H</span>
-            <span className="login-brand__text">Hai1ro</span>
-          </a>
-          <a className="login-back" href="/">
-            返回博客
-            <Icon name="external" size={14} />
-          </a>
-        </div>
-
-        <div className="login-intro__body">
-          <p className="eyebrow">Personal writing space</p>
-          <h1>
-            把想法，
-            <br />
-            <em>写下来</em>。
-          </h1>
-          <p className="login-intro__lede">
-            没有平台后台，没有复杂的发布流程。登录 GitHub，直接编辑仓库里的 Markdown，
-            保存即提交，剩下的交给自动化。
-          </p>
-          <blockquote className="login-quote">
-            写作不是为了被看见，而是为了看见自己。
-          </blockquote>
-        </div>
-
-        <div className="login-intro__footer">
-          <span>Astro · Semi Design · Tiptap</span>
-          <span>GitHub Pages</span>
-        </div>
-      </section>
-
       <section className="login-panel">
         <div className="login-card">
           <div className="login-card__head">
-            <p className="login-card__eyebrow">Admin</p>
+            <a className="login-home" href="/">← 返回博客</a>
             <h2>登录管理后台</h2>
             <p>
               使用 GitHub 账号授权，编辑会直接提交到{' '}
@@ -104,19 +70,19 @@ export function LoginScreen() {
             </p>
           </div>
 
-          <button
-            type="button"
-            className="github-btn"
+          <Button
+            type="primary"
+            theme="solid"
+            size="large"
+            block
+            icon={<Icon name="github" size={18} />}
+            loading={oauthLoading}
+            disabled={patLoading}
             onClick={handleOAuth}
-            disabled={oauthLoading || patLoading}
+            className="login-oauth-btn"
           >
-            {oauthLoading ? (
-              <span className="github-btn__spinner" />
-            ) : (
-              <Icon name="github" size={19} />
-            )}
             {oauthLoading ? '正在等待 GitHub 授权…' : '使用 GitHub 登录'}
-          </button>
+          </Button>
 
           {!isOAuthConfigured && (
             <p className="login-config-hint">

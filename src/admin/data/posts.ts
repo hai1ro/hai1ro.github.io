@@ -41,6 +41,27 @@ export interface SavePostResult {
   sha: string;
   path: string;
   frontmatter: PostFrontmatter;
+  /** 是否已主动触发 Pages 构建 */
+  dispatched: boolean;
+  /** 构建触发失败时的提示（文件已经提交成功） */
+  dispatchError?: string;
+}
+
+async function dispatchAfterChange(
+  client: GitHubClient,
+): Promise<{ dispatched: boolean; dispatchError?: string }> {
+  try {
+    await client.dispatchBlogPublish();
+    return { dispatched: true };
+  } catch (error) {
+    return {
+      dispatched: false,
+      dispatchError:
+        error instanceof Error
+          ? error.message
+          : '无法触发 GitHub Actions，请到 Actions 页面手动运行部署。',
+    };
+  }
 }
 
 const CACHE_TTL = 30_000;
@@ -198,23 +219,34 @@ export async function saveDocument(
 
   invalidatePostCache();
 
+  // 草稿只提交，不触发 Actions；只有发布状态才主动触发 Pages 构建
+  const deployment = frontmatter.draft
+    ? { dispatched: false as const }
+    : await dispatchAfterChange(client);
+
   return {
     sha: result.content.sha,
     path: result.content.path,
     frontmatter,
+    ...deployment,
   };
 }
 
 export async function deleteDocument(
   client: GitHubClient,
-  post: { path: string; sha: string; title: string },
-): Promise<void> {
+  post: { path: string; sha: string; title: string; published: boolean },
+): Promise<{ dispatched: boolean; dispatchError?: string }> {
   await client.deleteFile({
     path: post.path,
     sha: post.sha,
     message: `post: 删除《${post.title}》`,
   });
   invalidatePostCache();
+
+  // 删除草稿不触发构建；删除已发布文章才需要重新构建
+  return post.published
+    ? dispatchAfterChange(client)
+    : { dispatched: false };
 }
 
 const ALLOWED_IMAGE_TYPES: Record<string, string> = {

@@ -78,8 +78,8 @@ export function Dashboard({
                 欢迎回来，{session.user.name || session.user.login}
               </h1>
               <p className="dash-hero__lede">
-                文章保存在仓库的 <code>src/content/posts</code> 中。每次保存都会生成一次
-                commit，GitHub Actions 随后会把站点重新构建到 Pages。
+                文章保存在仓库的 <code>src/content/posts</code> 中。保存草稿只会提交 commit，
+                不会触发构建；发布或更新已发布文章时才会触发 GitHub Actions。
               </p>
             </div>
             <Button
@@ -222,6 +222,7 @@ export function Dashboard({
                     <kbd>⌘</kbd> + <kbd>S</kbd> 快速保存
                   </li>
                   <li>图片会直接上传到仓库的 public 目录</li>
+                  <li>草稿保存不触发构建，发布时才触发</li>
                 </ul>
               </section>
             </aside>

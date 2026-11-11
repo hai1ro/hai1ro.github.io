@@ -14,8 +14,7 @@ const isActive = (href: string) => {
 <header class="site-header" data-site-header>
   <div class="container site-header__inner">
     <a class="brand" href="/" aria-label={`${siteConfig.title} 首页`}>
-      <span class="brand__mark" aria-hidden="true">H</span>
-      <span class="brand__text">{siteConfig.title}</span>
+      {siteConfig.title}
     </a>
 
     <nav class="site-nav" id="site-nav" data-site-nav aria-label="主导航">
@@ -35,11 +34,11 @@ const isActive = (href: string) => {
         aria-label="管理后台"
         title="管理后台"
       >
-        <Icon name="pencil" size={17} />
+        <Icon name="pencil" size={16} />
       </a>
       <button class="icon-btn" type="button" data-theme-toggle aria-label="切换深色模式">
-        <span class="theme-icon theme-icon--light"><Icon name="moon" size={17} /></span>
-        <span class="theme-icon theme-icon--dark"><Icon name="sun" size={17} /></span>
+        <span class="theme-icon theme-icon--light"><Icon name="moon" size={16} /></span>
+        <span class="theme-icon theme-icon--dark"><Icon name="sun" size={16} /></span>
       </button>
       <button
         class="icon-btn mobile-only"
@@ -49,8 +48,8 @@ const isActive = (href: string) => {
         aria-expanded="false"
         aria-controls="site-nav"
       >
-        <span class="menu-icon--open"><Icon name="menu" size={19} /></span>
-        <span class="menu-icon--close"><Icon name="close" size={19} /></span>
+        <span class="menu-icon--open"><Icon name="menu" size={18} /></span>
+        <span class="menu-icon--close"><Icon name="close" size={18} /></span>
       </button>
     </div>
   </div>

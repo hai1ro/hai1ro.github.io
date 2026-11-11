@@ -1,8 +1,10 @@
 name: Deploy to GitHub Pages
 
 on:
-  push:
-    branches: [main]
+  # 只有发布文章（后台主动 dispatch）或手动运行才会构建。
+  # 保存草稿只产生 commit，不触发 Actions。
+  repository_dispatch:
+    types: [blog-publish]
   workflow_dispatch:
 
 permissions:

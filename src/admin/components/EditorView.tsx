@@ -238,14 +238,24 @@ export function EditorView({
       setLastSavedAt(new Date());
       if (mode === 'source') setSourceValue(markdown);
 
-      Toast.success({
-        content: result.frontmatter.draft
-          ? '草稿已保存，提交已推送到 GitHub。'
-          : wasNew
-            ? '文章已发布，GitHub Actions 正在构建站点。'
-            : '修改已提交，稍后会自动部署。',
-        duration: 3,
-      });
+      if (result.frontmatter.draft) {
+        Toast.success({
+          content: '草稿已保存到 GitHub，不会触发 Pages 构建。',
+          duration: 3,
+        });
+      } else if (result.dispatchError) {
+        Toast.warning({
+          content: `已保存到 GitHub，但触发构建失败：${result.dispatchError} 请到 Actions 手动运行 Deploy to GitHub Pages。`,
+          duration: 8,
+        });
+      } else {
+        Toast.success({
+          content: wasNew
+            ? '文章已发布，已触发 GitHub Pages 构建。'
+            : '修改已发布，已触发 GitHub Pages 构建。',
+          duration: 3,
+        });
+      }
 
       onSaved({ slug, isNew: wasNew, title: result.frontmatter.title });
     } catch (error) {
@@ -323,12 +333,23 @@ export function EditorView({
       okButtonProps: { type: 'danger', theme: 'solid' },
       onOk: async () => {
         try {
-          await deleteDocument(client, {
+          const result = await deleteDocument(client, {
             path: postPath(slug),
             sha,
             title: frontmatter.title || slug,
+            published: !frontmatter.draft,
           });
-          Toast.success({ content: '文章已删除，站点将重新构建。', duration: 3 });
+
+          if (result.dispatchError) {
+            Toast.warning({
+              content: `文章已删除，但触发构建失败：${result.dispatchError} 请到 Actions 手动运行部署。`,
+              duration: 8,
+            });
+          } else if (frontmatter.draft) {
+            Toast.success({ content: '草稿已删除，不会触发 Pages 构建。', duration: 3 });
+          } else {
+            Toast.success({ content: '文章已删除，已触发 GitHub Pages 构建。', duration: 3 });
+          }
           onDeleted();
         } catch (error) {
           Toast.error({

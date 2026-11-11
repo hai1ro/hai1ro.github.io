@@ -1,102 +1,58 @@
-/* ============================================================
-   Design tokens —— 以 Semi Design 变量为底座，叠加个人博客的纸张感
-   ============================================================ */
+/* 使用 Semi Design 默认视觉：默认蓝色主色、系统字体、白/深色背景。
+   这里只把站点布局用到的变量映射到 Semi 的 token，不覆盖 Semi 的默认值。 */
 
 :root {
-  --font-sans: 'Inter', 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI',
-    'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC', 'Noto Sans CJK SC', sans-serif;
-  --font-serif: 'Iowan Old Style', 'Palatino Linotype', 'Source Han Serif SC', 'Noto Serif SC',
-    'Songti SC', 'Noto Serif SC', 'Noto Serif CJK SC', 'SimSun', Georgia, serif;
-  --font-mono: 'JetBrains Mono', 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', 'Noto Sans Mono CJK SC', monospace;
-
-  --bg: #fbf9f4;
-  --bg-soft: #f4efe6;
-  --bg-elev: #fffdf9;
-  --text: #201d19;
-  --text-2: #5d564c;
-  --text-3: #938a7c;
-  --line: #e6dfd2;
-  --line-strong: #d5cbbb;
-  --accent: #c14b2c;
-  --accent-hover: #a63c21;
-  --accent-soft: #f7e6dd;
-  --code-bg: #f2ede3;
-  --shadow: 0 24px 60px -24px rgba(66, 48, 28, 0.25);
-  --shadow-soft: 0 10px 30px -18px rgba(66, 48, 28, 0.3);
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 20px;
   --container: 1120px;
   --content: 720px;
-  --header-h: 68px;
+  --header-h: 60px;
+}
 
+body {
+  /* 布局别名，全部指向 Semi 默认 token */
+  --bg: var(--semi-color-bg-0);
+  --bg-soft: var(--semi-color-fill-0);
+  --bg-elev: var(--semi-color-bg-0);
+  --text: var(--semi-color-text-0);
+  --text-2: var(--semi-color-text-1);
+  --text-3: var(--semi-color-text-2);
+  --line: var(--semi-color-border);
+  --line-strong: var(--semi-color-fill-2, var(--semi-color-border));
+  --accent: var(--semi-color-primary);
+  --accent-hover: var(--semi-color-primary-hover);
+  --accent-soft: var(--semi-color-primary-light-default);
+  --code-bg: var(--semi-color-fill-0);
+  --shadow: var(--semi-shadow-elevated);
+  --shadow-soft: var(--semi-shadow-elevated);
+
+  --radius-sm: var(--semi-border-radius-small);
+  --radius-md: var(--semi-border-radius-medium);
+  --radius-lg: var(--semi-border-radius-large);
+
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', 'Segoe UI', 'Helvetica Neue', Helvetica, Arial,
+    sans-serif;
+  --font-serif: var(--font-sans);
+  --font-mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace;
+
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+html[data-theme='light'] {
   color-scheme: light;
 }
 
 html[data-theme='dark'] {
-  --bg: #141311;
-  --bg-soft: #1c1a17;
-  --bg-elev: #211f1b;
-  --text: #ece6db;
-  --text-2: #b2aa9d;
-  --text-3: #81796c;
-  --line: #302c26;
-  --line-strong: #433c33;
-  --accent: #e87952;
-  --accent-hover: #f0906e;
-  --accent-soft: #35211a;
-  --code-bg: #1b1916;
-  --shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.7);
-  --shadow-soft: 0 10px 30px -18px rgba(0, 0, 0, 0.7);
-
   color-scheme: dark;
-}
-
-/* 让 Semi 组件跟随博客的纸张与朱砂色 */
-body {
-  --semi-color-primary: var(--accent);
-  --semi-color-primary-hover: var(--accent-hover);
-  --semi-color-primary-active: var(--accent-hover);
-  --semi-color-primary-light-default: var(--accent-soft);
-  --semi-color-primary-light-hover: var(--accent-soft);
-  --semi-color-primary-light-active: var(--accent-soft);
-  --semi-color-link: var(--accent);
-  --semi-color-link-hover: var(--accent-hover);
-  --semi-color-focus-border: var(--accent);
-  --semi-color-text-0: var(--text);
-  --semi-color-text-1: var(--text-2);
-  --semi-color-text-2: var(--text-3);
-  --semi-color-text-3: var(--text-3);
-  --semi-color-border: var(--line);
-  --semi-color-bg-0: var(--bg-elev);
-  --semi-color-bg-1: var(--bg);
-  --semi-color-bg-2: var(--bg-soft);
-  --semi-color-fill-0: var(--bg-soft);
-  --semi-color-fill-1: var(--bg-soft);
-  --semi-border-radius-small: 8px;
-  --semi-border-radius-medium: 12px;
-  --semi-border-radius-large: 16px;
-}
-
-body[theme-mode='dark'] {
-  --semi-color-primary: var(--accent);
-  --semi-color-primary-hover: var(--accent-hover);
-  --semi-color-primary-active: var(--accent-hover);
-  --semi-color-primary-light-default: var(--accent-soft);
-  --semi-color-primary-light-hover: var(--accent-soft);
-  --semi-color-primary-light-active: var(--accent-soft);
-  --semi-color-link: var(--accent);
-  --semi-color-link-hover: var(--accent-hover);
-  --semi-color-text-0: var(--text);
-  --semi-color-text-1: var(--text-2);
-  --semi-color-text-2: var(--text-3);
-  --semi-color-text-3: var(--text-3);
-  --semi-color-border: var(--line);
-  --semi-color-bg-0: var(--bg-elev);
-  --semi-color-bg-1: var(--bg);
-  --semi-color-bg-2: var(--bg-soft);
-  --semi-color-fill-0: var(--bg-soft);
-  --semi-color-fill-1: var(--bg-soft);
 }
 
 *,
@@ -111,23 +67,9 @@ html {
   scroll-padding-top: calc(var(--header-h) + 24px);
 }
 
-body {
-  margin: 0;
-  min-height: 100vh;
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--font-sans);
-  font-size: 16px;
-  line-height: 1.65;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-  transition: background-color 0.25s ease, color 0.25s ease;
-}
-
 ::selection {
-  background: var(--accent);
-  color: #fff;
+  background: var(--semi-color-primary-light-default);
+  color: var(--text);
 }
 
 a {
@@ -171,9 +113,8 @@ blockquote {
 }
 
 :focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 3px;
-  border-radius: 4px;
+  outline: 2px solid var(--semi-color-primary);
+  outline-offset: 2px;
 }
 
 hr {
@@ -184,15 +125,15 @@ hr {
   width: 100%;
   max-width: var(--container);
   margin-inline: auto;
-  padding-inline: clamp(20px, 4vw, 32px);
+  padding-inline: 24px;
 }
 
 .container--narrow {
-  max-width: calc(var(--content) + 64px);
+  max-width: calc(var(--content) + 48px);
 }
 
 .serif {
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
 }
 
 .mono {
@@ -206,59 +147,46 @@ hr {
 .eyebrow {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  color: var(--accent);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.18em;
+  gap: 8px;
+  color: var(--text-2);
+  font-size: 12px;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-}
-
-.eyebrow::before {
-  content: '';
-  width: 22px;
-  height: 1px;
-  background: currentColor;
-  opacity: 0.6;
 }
 
 .tag {
   display: inline-flex;
   align-items: center;
-  padding: 2px 9px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
+  gap: 4px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: var(--semi-border-radius-small);
+  background: var(--semi-color-fill-0);
   color: var(--text-2);
   font-size: 12px;
-  line-height: 1.6;
+  line-height: 22px;
   white-space: nowrap;
-  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
 }
 
 a.tag:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--accent-soft);
+  background: var(--semi-color-primary-light-default);
+  color: var(--semi-color-primary);
 }
 
 .draft-badge {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 1px 8px;
-  border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--accent);
+  padding: 0 6px;
+  border-radius: var(--semi-border-radius-small);
+  background: var(--semi-color-warning-light-default);
+  color: var(--semi-color-warning);
   font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  line-height: 20px;
 }
 
-/* 滚动条 */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--line-strong) transparent;
+  scrollbar-color: var(--semi-color-fill-2) transparent;
 }
 
 *::-webkit-scrollbar {
@@ -267,7 +195,7 @@ a.tag:hover {
 }
 
 *::-webkit-scrollbar-thumb {
-  background: var(--line-strong);
+  background: var(--semi-color-fill-2);
   border-radius: 8px;
 }
 

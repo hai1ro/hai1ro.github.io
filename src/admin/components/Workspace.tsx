@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Input, Modal, Spin, Toast } from '@douyinfe/semi-ui';
+import { Button, Input, Modal, Spin, Toast } from '@douyinfe/semi-ui';
 import { useAuth } from '../auth/AuthContext';
 import { GitHubError } from '../github/client';
 import { listPosts, loadDocument, type PostDocument, type PostSummary } from '../data/posts';
@@ -252,10 +252,17 @@ export function Workspace() {
           </button>
         </div>
 
-        <button type="button" className="new-post-btn" onClick={() => navigate({ type: 'new' })}>
-          <Icon name="plus" size={17} />
+        <Button
+          type="primary"
+          theme="solid"
+          size="large"
+          block
+          icon={<Icon name="plus" size={17} />}
+          onClick={() => navigate({ type: 'new' })}
+          className="sidebar-new-btn"
+        >
           新建文章
-        </button>
+        </Button>
 
         <div className="sidebar-search">
           <Input
