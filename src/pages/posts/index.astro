@@ -1,11 +1,24 @@
 ---
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import Icon from '@/components/Icon.astro';
-import { collectTags, getAllPosts, postHref, readingMinutes } from '@/lib/posts';
+import {
+  collectTags,
+  contentTypeLabel,
+  getAllPosts,
+  postExcerpt,
+  postHref,
+  postTitle,
+  readingMinutes,
+} from '@/lib/posts';
 import { toISODate } from '@/lib/date';
 
 const posts = await getAllPosts();
 const tags = collectTags(posts);
+const typeCounts = {
+  article: posts.filter((post) => post.data.type === 'article').length,
+  diary: posts.filter((post) => post.data.type === 'diary').length,
+  photo: posts.filter((post) => post.data.type === 'photo').length,
+};
 
 const groups = new Map<string, typeof posts>();
 for (const post of posts) {
@@ -16,15 +29,14 @@ for (const post of posts) {
 }
 ---
 
-<BaseLayout title="文章" description="按时间整理的所有文章，可按标签筛选或搜索。">
+<BaseLayout title="内容" description="按时间整理的所有文章、日记和照片，可按类型、标签筛选或搜索。">
   <div data-archive>
     <section class="archive-hero">
       <div class="container">
         <p class="eyebrow">Archive</p>
-        <h1>所有文章</h1>
+        <h1>所有内容</h1>
         <p>
-          共 {posts.length} 篇。按时间排列，也可以按标签筛选或直接搜索。
-          写作的主题大多关于代码、设计与日常。
+          共 {posts.length} 条内容，包括文章、日记和照片。按时间排列，也可以按类型、标签筛选或直接搜索。
         </p>
       </div>
     </section>
@@ -37,22 +49,37 @@ for (const post of posts) {
             type="search"
             data-archive-search
             placeholder="搜索标题、摘要或标签…"
-            aria-label="搜索文章"
+            aria-label="搜索内容"
             autocomplete="off"
           />
         </label>
 
-        <div class="archive-tags" role="group" aria-label="按标签筛选">
+        <div class="archive-tags" role="group" aria-label="按类型筛选">
           <button
             type="button"
             class="chip"
-            data-archive-tag=""
+            data-archive-type=""
             data-active="true"
             aria-pressed="true"
           >
             全部
             <em>{posts.length}</em>
           </button>
+          {(['article', 'diary', 'photo'] as const).map((type) => (
+            <button
+              type="button"
+              class="chip"
+              data-archive-type={type}
+              data-active="false"
+              aria-pressed="false"
+            >
+              {contentTypeLabel(type)}
+              <em>{typeCounts[type]}</em>
+            </button>
+          ))}
+        </div>
+
+        <div class="archive-tags" role="group" aria-label="按标签筛选">
           {tags.map((tag) => (
             <button
               type="button"
@@ -71,7 +98,7 @@ for (const post of posts) {
 
     <div class="container">
       <div class="archive-summary">
-        <span data-archive-count aria-live="polite">{posts.length} 篇</span>
+        <span data-archive-count aria-live="polite">{posts.length} 条</span>
         <span data-archive-filtered hidden>已应用筛选</span>
       </div>
 
@@ -80,11 +107,15 @@ for (const post of posts) {
           <div class="archive-year">{year}</div>
           <div>
             {list.map((post) => {
+              const title = postTitle(post);
+              const excerpt = postExcerpt(post, 100);
+              const typeLabel = contentTypeLabel(post.data.type);
               const searchText = [
-                post.data.title,
-                post.data.description,
+                title,
+                excerpt,
                 post.data.tags.join(' '),
                 post.id,
+                typeLabel,
               ]
                 .join(' ')
                 .toLowerCase();
@@ -93,6 +124,7 @@ for (const post of posts) {
                   class="archive-item"
                   href={postHref(post)}
                   data-archive-item
+                  data-type={post.data.type}
                   data-search={searchText}
                   data-tags={JSON.stringify(post.data.tags)}
                 >
@@ -101,15 +133,18 @@ for (const post of posts) {
                   </time>
                   <div>
                     <h3>
-                      {post.data.title}
+                      <span class="type-badge" data-type={post.data.type}>{typeLabel}</span>
+                      {title}
                       {post.data.draft && <span class="draft-badge">草稿</span>}
                     </h3>
-                    {post.data.description && (
-                      <p class="archive-item__desc">{post.data.description}</p>
-                    )}
+                    {excerpt && <p class="archive-item__desc">{excerpt}</p>}
                   </div>
                   <div class="archive-item__tags">
-                    <span class="archive-item__reading">{readingMinutes(post)} 分钟</span>
+                    {post.data.type === 'photo' ? (
+                      <span class="archive-item__reading">{post.data.images.length} 张</span>
+                    ) : (
+                      <span class="archive-item__reading">{readingMinutes(post)} 分钟</span>
+                    )}
                     {post.data.tags.slice(0, 2).map((tag) => (
                       <span class="tag">{tag}</span>
                     ))}
@@ -122,8 +157,8 @@ for (const post of posts) {
       ))}
 
       <div class="archive-empty" data-archive-empty hidden>
-        <p class="serif">没有找到文章</p>
-        <span>换个关键词或标签试试。</span>
+        <p class="serif">没有找到内容</p>
+        <span>换个关键词、类型或标签试试。</span>
         <button type="button" data-archive-reset>清除筛选</button>
       </div>
     </div>

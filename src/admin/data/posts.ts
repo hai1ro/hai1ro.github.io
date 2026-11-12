@@ -1,5 +1,6 @@
 import { blogConfig } from '@/config/blog';
 import {
+  CONTENT_TYPE_LABEL,
   emptyFrontmatter,
   parsePostSource,
   stringifyPostSource,
@@ -176,8 +177,22 @@ export async function saveDocument(
 
   const frontmatter: PostFrontmatter = {
     ...options.frontmatter,
-    title: options.frontmatter.title.trim() || '无标题',
+    title:
+      options.frontmatter.type === 'article'
+        ? options.frontmatter.title.trim() || '无标题'
+        : options.frontmatter.title.trim(),
+    images: options.frontmatter.images.map((image) => image.trim()).filter(Boolean),
   };
+
+  if (options.frontmatter.type === 'article' && !options.frontmatter.title.trim()) {
+    throw new Error('请先填写文章标题。');
+  }
+  if (frontmatter.type === 'diary' && !options.body.trim()) {
+    throw new Error('日记内容不能为空。');
+  }
+  if (frontmatter.type === 'photo' && frontmatter.images.length === 0) {
+    throw new Error('照片内容至少需要一张图片。');
+  }
 
   if (!options.isNew) {
     const today = todayISO();
@@ -187,7 +202,9 @@ export async function saveDocument(
   const path = postPath(slug);
   const content = stringifyPostSource(frontmatter, options.body, options.extra);
   const action = options.isNew ? '新建' : '更新';
-  const message = `post: ${action}《${frontmatter.title}》`;
+  const label = CONTENT_TYPE_LABEL[frontmatter.type];
+  const name = frontmatter.title || slug;
+  const message = `post: ${action}${label}《${name}》`;
 
   const result = await client.putFile({
     path,

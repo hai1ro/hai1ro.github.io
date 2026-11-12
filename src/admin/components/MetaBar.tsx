@@ -1,5 +1,6 @@
 import { DatePicker, Switch, TagInput } from '@douyinfe/semi-ui';
 import { parseDateOnly, toISODate } from '@/lib/date';
+import { CONTENT_TYPE_LABEL } from '@/lib/frontmatter';
 import type { PostFrontmatter } from '@/lib/frontmatter';
 import { Icon } from './icons';
 
@@ -14,6 +15,10 @@ interface Props {
 export function MetaBar({ frontmatter, onChange, settingsOpen, onToggleSettings, slug }: Props) {
   return (
     <div className="meta-bar">
+      <span className="meta-bar__type" data-type={frontmatter.type}>
+        {CONTENT_TYPE_LABEL[frontmatter.type]}
+      </span>
+
       <div className="meta-bar__item meta-bar__date">
         <span className="meta-bar__label">日期</span>
         <DatePicker

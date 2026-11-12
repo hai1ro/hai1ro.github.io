@@ -58,10 +58,10 @@ export function formatDateTime(value: string | Date): string {
   return `${formatLocalDate(d)} ${hh}:${mm}`;
 }
 
-export function relativeTime(value: string | Date): string {
-  const d = value instanceof Date ? value : new Date(value);
+export function relativeTime(value: string | Date, now: number = Date.now()): string {
+  const d = value instanceof Date ? value : parseDateOnly(value);
   if (Number.isNaN(d.getTime())) return '';
-  const diff = Date.now() - d.getTime();
+  const diff = now - d.getTime();
   const minute = 60_000;
   const hour = 60 * minute;
   const day = 24 * hour;

@@ -45,7 +45,8 @@ export type IconName =
   | 'sparkles'
   | 'grip'
   | 'alert'
-  | 'book';
+  | 'book'
+  | 'user';
 
 const paths: Record<IconName, ReactNode> = {
   dashboard: (
@@ -243,6 +244,12 @@ const paths: Record<IconName, ReactNode> = {
     <>
       <path d="M4 5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 0-2 2Z" />
       <path d="M4 19a2 2 0 0 1 2-2h13M8 7h7" />
+    </>
+  ),
+  user: (
+    <>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21a8 8 0 0 1 16 0" />
     </>
   ),
 };

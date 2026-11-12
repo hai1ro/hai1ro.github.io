@@ -3,7 +3,7 @@
   "type": "module",
   "version": "0.1.0",
   "private": true,
-  "description": "Hai1ro 的个人博客 · Astro + Semi UI + Notion 风格编辑器",
+  "description": "Hai1ro 的个人博客 · Astro + Semi UI + 文章 / 日记 / 照片动态",
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",

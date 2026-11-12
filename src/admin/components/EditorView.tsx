@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Button, Modal, Toast } from '@douyinfe/semi-ui';
+import { Button, Modal, TextArea, Toast } from '@douyinfe/semi-ui';
 import { MarkdownEditor, type MarkdownEditorHandle } from '../editor/MarkdownEditor';
 import { MarkdownToolbar } from '../editor/MarkdownToolbar';
 import { MetaBar } from './MetaBar';
 import { SettingsPanel } from './SettingsPanel';
+import { PhotoEditor } from './PhotoEditor';
 import { Icon } from './icons';
 import type { GitHubClient } from '../github/client';
 import {
@@ -14,14 +15,19 @@ import {
   uploadImage,
   type PostDocument,
 } from '../data/posts';
-import { emptyFrontmatter, type PostFrontmatter } from '@/lib/frontmatter';
+import {
+  CONTENT_TYPE_LABEL,
+  emptyFrontmatter,
+  type ContentType,
+  type PostFrontmatter,
+} from '@/lib/frontmatter';
 import { countText, deriveDescription } from '@/lib/text';
 import { isValidSlug, suggestedSlug, uniqueSlug } from '@/lib/slug';
 import { todayISO } from '@/lib/date';
 import { useTheme } from '../hooks/useTheme';
 
 type EditorInitial =
-  | { mode: 'new'; slug: string }
+  | { mode: 'new'; slug: string; type: ContentType }
   | { mode: 'edit'; doc: PostDocument };
 
 interface Props {
@@ -38,8 +44,16 @@ interface Props {
   onBack: () => void;
 }
 
+const MAX_PHOTOS = 9;
+
 function formatClock(date: Date): string {
   return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+}
+
+function placeholderFor(type: ContentType): string {
+  if (type === 'diary') return '标题（可选）';
+  if (type === 'photo') return '标题（可选）';
+  return '无标题';
 }
 
 export function EditorView({
@@ -56,11 +70,12 @@ export function EditorView({
   onBack,
 }: Props) {
   const editingDoc = initial.mode === 'edit' ? initial.doc : null;
+  const initialType: ContentType =
+    initial.mode === 'edit' ? initial.doc.frontmatter.type : initial.type;
 
   const [frontmatter, setFrontmatter] = useState<PostFrontmatter>(
     editingDoc?.frontmatter ?? {
-      ...emptyFrontmatter(),
-      title: '',
+      ...emptyFrontmatter(initialType),
       date: todayISO(),
       draft: true,
     },
@@ -76,11 +91,17 @@ export function EditorView({
   const [saving, setSaving] = useState(false);
   const [body, setBody] = useState(editingDoc?.body ?? '');
   const [wysiwyg, setWysiwyg] = useState(true);
-  const [settingsOpen, setSettingsOpen] = useState(initial.mode === 'new');
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [coverUploading, setCoverUploading] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
+  const [photoUploading, setPhotoUploading] = useState(false);
   const { theme, toggle: toggleTheme } = useTheme();
+
+  const type = frontmatter.type;
+  const isArticle = type === 'article';
+  const isDiary = type === 'diary';
+  const isPhoto = type === 'photo';
 
   const titleRef = useRef<HTMLTextAreaElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
@@ -95,26 +116,6 @@ export function EditorView({
   }, [dirty, onDirtyChange]);
 
   useEffect(() => () => onDirtyChange(false), [onDirtyChange]);
-
-  const handleImageUpload = useCallback(
-    async (file: File) => {
-      setImageUploading(true);
-      try {
-        const image = await uploadImage(client, file);
-        return image.url;
-      } finally {
-        setImageUploading(false);
-      }
-    },
-    [client],
-  );
-
-  const handleImageError = useCallback((error: unknown) => {
-    Toast.error({
-      content: error instanceof Error ? error.message : '图片上传失败',
-      duration: 5,
-    });
-  }, []);
 
   useEffect(() => {
     const element = titleRef.current;
@@ -154,12 +155,104 @@ export function EditorView({
     markDirty();
   };
 
+  const handleImageUpload = useCallback(
+    async (file: File) => {
+      setImageUploading(true);
+      try {
+        const image = await uploadImage(client, file);
+        return image.url;
+      } finally {
+        setImageUploading(false);
+      }
+    },
+    [client],
+  );
+
+  const handleImageError = useCallback((error: unknown) => {
+    Toast.error({
+      content: error instanceof Error ? error.message : '图片上传失败',
+      duration: 5,
+    });
+  }, []);
+
+  const handlePhotoAdd = useCallback(
+    async (files: File[]) => {
+      const remaining = MAX_PHOTOS - frontmatter.images.length;
+      if (remaining <= 0) {
+        Toast.warning({ content: `最多上传 ${MAX_PHOTOS} 张照片。`, duration: 3 });
+        return;
+      }
+
+      setPhotoUploading(true);
+      const urls: string[] = [];
+      try {
+        for (const file of files.slice(0, remaining)) {
+          try {
+            const image = await uploadImage(client, file);
+            urls.push(image.url);
+          } catch (error) {
+            Toast.error({
+              content:
+                error instanceof Error ? `${file.name}：${error.message}` : '照片上传失败',
+              duration: 5,
+            });
+          }
+        }
+        if (urls.length > 0) {
+          setFrontmatter((previous) => ({
+            ...previous,
+            images: [...previous.images, ...urls].slice(0, MAX_PHOTOS),
+          }));
+          markDirty();
+        }
+      } finally {
+        setPhotoUploading(false);
+      }
+    },
+    [client, frontmatter.images.length, markDirty],
+  );
+
+  const handlePhotoRemove = useCallback(
+    (index: number) => {
+      setFrontmatter((previous) => ({
+        ...previous,
+        images: previous.images.filter((_, current) => current !== index),
+      }));
+      markDirty();
+    },
+    [markDirty],
+  );
+
+  const handlePhotoMove = useCallback(
+    (from: number, to: number) => {
+      setFrontmatter((previous) => {
+        const images = [...previous.images];
+        if (from < 0 || from >= images.length || to < 0 || to >= images.length) {
+          return previous;
+        }
+        const [moved] = images.splice(from, 1);
+        images.splice(to, 0, moved);
+        return { ...previous, images };
+      });
+      markDirty();
+    },
+    [markDirty],
+  );
+
   const handleSave = useCallback(async () => {
     if (savingRef.current) return;
 
-    if (!frontmatter.title.trim()) {
+    if (isArticle && !frontmatter.title.trim()) {
       Toast.warning({ content: '请先填写文章标题。', duration: 3 });
       titleRef.current?.focus();
+      return;
+    }
+    if (isDiary && !body.trim()) {
+      Toast.warning({ content: '日记内容不能为空。', duration: 3 });
+      return;
+    }
+    if (isPhoto && frontmatter.images.length === 0) {
+      Toast.warning({ content: '照片内容至少需要一张图片。', duration: 3 });
       return;
     }
     if (isNew && !isValidSlug(slug)) {
@@ -198,7 +291,7 @@ export function EditorView({
 
       Toast.success({
         content: result.frontmatter.draft
-          ? '草稿已保存到 GitHub。需要点击「构建站点」后才会反映到网站。'
+          ? '已保存草稿到 GitHub。点击「构建站点」后才会反映到网站。'
           : '已保存到 GitHub。点击「构建站点」后网站才会更新。',
         duration: 4,
       });
@@ -219,7 +312,10 @@ export function EditorView({
     existingSlugs,
     extra,
     frontmatter,
+    isArticle,
+    isDiary,
     isNew,
+    isPhoto,
     onSaved,
     sha,
     slug,
@@ -264,9 +360,10 @@ export function EditorView({
 
   const handleDelete = () => {
     if (isNew || !sha) return;
+    const label = CONTENT_TYPE_LABEL[type];
     Modal.confirm({
-      title: '删除这篇文章？',
-      content: `《${frontmatter.title || slug}》的 Markdown 文件会从 GitHub 仓库中删除。删除后需要点击「构建站点」才会从网站移除。`,
+      title: `删除这条${label}？`,
+      content: `对应的 Markdown 文件会从 GitHub 仓库中删除。删除后需要点击「构建站点」才会从网站移除。`,
       okText: '删除',
       cancelText: '取消',
       okButtonProps: { type: 'danger', theme: 'solid' },
@@ -305,6 +402,7 @@ export function EditorView({
             ? '尚未保存'
             : '已从 GitHub 加载';
   const targetUrl = `/posts/${slug}/`;
+  const typeLabel = CONTENT_TYPE_LABEL[type];
 
   return (
     <div className="editor-shell">
@@ -320,12 +418,12 @@ export function EditorView({
           </button>
           <button type="button" className="editor-back" onClick={onBack}>
             <Icon name="arrow-left" size={16} />
-            文章管理
+            内容管理
           </button>
           <div className="editor-breadcrumb editor-breadcrumb--doc">
-            <span>文章</span>
+            <span>{typeLabel}</span>
             <span className="editor-breadcrumb__sep">/</span>
-            <strong>{frontmatter.title || '无标题'}</strong>
+            <strong>{frontmatter.title || (isNew ? '未命名' : slug)}</strong>
           </div>
           <span className={`save-state ${dirty ? 'is-dirty' : ''}`}>
             <span className="save-state__dot" />
@@ -334,24 +432,26 @@ export function EditorView({
         </div>
 
         <div className="editor-topbar__actions">
-          <div className="mode-switch" role="group" aria-label="编辑模式">
-            <button
-              type="button"
-              data-active={wysiwyg}
-              onClick={() => setWysiwyg(true)}
-              title="隐藏 Markdown 标记，直接看到排版"
-            >
-              所见即所得
-            </button>
-            <button
-              type="button"
-              data-active={!wysiwyg}
-              onClick={() => setWysiwyg(false)}
-              title="显示完整 Markdown 源码"
-            >
-              源码
-            </button>
-          </div>
+          {isArticle && (
+            <div className="mode-switch" role="group" aria-label="编辑模式">
+              <button
+                type="button"
+                data-active={wysiwyg}
+                onClick={() => setWysiwyg(true)}
+                title="隐藏 Markdown 标记，直接看到排版"
+              >
+                所见即所得
+              </button>
+              <button
+                type="button"
+                data-active={!wysiwyg}
+                onClick={() => setWysiwyg(false)}
+                title="显示完整 Markdown 源码"
+              >
+                源码
+              </button>
+            </div>
+          )}
 
           <Button
             theme="borderless"
@@ -399,32 +499,37 @@ export function EditorView({
         </div>
       </header>
 
-      <MarkdownToolbar
-        editorRef={editorRef}
-        onPickImage={() => inlineImageRef.current?.click()}
-      />
+      {isArticle && (
+        <MarkdownToolbar
+          editorRef={editorRef}
+          onPickImage={() => inlineImageRef.current?.click()}
+        />
+      )}
 
       <div className="editor-scroll">
         <div className="editor-canvas">
           <div className="editor-kicker">
-            <span>{isNew ? 'NEW POST' : 'EDIT POST'}</span>
+            <span>
+              {isNew ? 'NEW' : 'EDIT'} {type.toUpperCase()}
+            </span>
             <span className="editor-kicker__line" />
             <span>{dirty ? '未提交' : '已提交到 GitHub'}</span>
             {imageUploading && <span className="editor-kicker__uploading">图片上传中…</span>}
+            {photoUploading && <span className="editor-kicker__uploading">照片上传中…</span>}
           </div>
 
           <textarea
             ref={titleRef}
-            className="editor-title"
+            className={`editor-title ${!isArticle ? 'editor-title--optional' : ''}`}
             rows={1}
             value={frontmatter.title}
-            placeholder="无标题"
+            placeholder={placeholderFor(type)}
             spellCheck={false}
             onChange={(event) => changeTitle(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === 'Enter' && !event.shiftKey) {
                 event.preventDefault();
-                editorRef.current?.focus();
+                if (isArticle) editorRef.current?.focus();
               }
             }}
           />
@@ -461,27 +566,71 @@ export function EditorView({
             />
           )}
 
-          <div className="editor-workspace">
-            <div className="editor-pane">
-              <MarkdownEditor
-                ref={editorRef}
-                initialValue={body}
-                wysiwyg={wysiwyg}
+          {isArticle && (
+            <div className="editor-workspace">
+              <div className="editor-pane">
+                <MarkdownEditor
+                  ref={editorRef}
+                  initialValue={body}
+                  wysiwyg={wysiwyg}
+                  onChange={(value) => {
+                    setBody(value);
+                    markDirty();
+                  }}
+                  onSave={handleSave}
+                  onImageUpload={handleImageUpload}
+                  onImageError={handleImageError}
+                  placeholder="开始写 Markdown…"
+                />
+              </div>
+            </div>
+          )}
+
+          {isDiary && (
+            <div className="editor-plain">
+              <TextArea
+                className="editor-plain__textarea"
+                value={body}
                 onChange={(value) => {
                   setBody(value);
                   markDirty();
                 }}
-                onSave={handleSave}
-                onImageUpload={handleImageUpload}
-                onImageError={handleImageError}
-                placeholder="开始写 Markdown…"
+                autosize={{ minRows: 14, maxRows: 40 }}
+                placeholder="写点什么…"
               />
+              <p className="editor-plain__hint">日记按纯文本保存，不解析 Markdown。</p>
             </div>
-          </div>
+          )}
+
+          {isPhoto && (
+            <div className="editor-photo">
+              <PhotoEditor
+                images={frontmatter.images}
+                uploading={photoUploading}
+                onAdd={(files) => void handlePhotoAdd(files)}
+                onRemove={handlePhotoRemove}
+                onMove={handlePhotoMove}
+              />
+              <label className="editor-caption">
+                <span>照片说明（可选）</span>
+                <TextArea
+                  value={body}
+                  onChange={(value) => {
+                    setBody(value);
+                    markDirty();
+                  }}
+                  autosize={{ minRows: 3, maxRows: 8 }}
+                  placeholder="写一段照片说明…"
+                />
+              </label>
+            </div>
+          )}
 
           <footer className="editor-footer">
             <span>
-              {stats.chars} 字 · 约 {stats.minutes} 分钟阅读
+              {isPhoto
+                ? `${frontmatter.images.length} 张照片 · ${stats.chars} 字说明`
+                : `${stats.chars} 字 · 约 ${stats.minutes} 分钟阅读`}
             </span>
             <span className="editor-footer__path">/posts/{slug}/</span>
             <span>保存只提交，点击「构建站点」后才更新网站</span>
@@ -499,17 +648,19 @@ export function EditorView({
         </div>
       </div>
 
-      <input
-        ref={inlineImageRef}
-        type="file"
-        accept="image/png,image/jpeg,image/webp,image/gif,image/avif"
-        hidden
-        onChange={(event) => {
-          const file = event.target.files?.[0];
-          if (file) void handleInlineImage(file);
-          event.target.value = '';
-        }}
-      />
+      {isArticle && (
+        <input
+          ref={inlineImageRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp,image/gif,image/avif"
+          hidden
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            if (file) void handleInlineImage(file);
+            event.target.value = '';
+          }}
+        />
+      )}
     </div>
   );
 }

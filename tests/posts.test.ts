@@ -4,12 +4,14 @@ import type { GitHubClient } from '../src/admin/github/client';
 import { deleteDocument, saveDocument } from '../src/admin/data/posts';
 import type { PostFrontmatter } from '../src/lib/frontmatter';
 
-function frontmatter(draft: boolean): PostFrontmatter {
+function frontmatter(draft: boolean, type: PostFrontmatter['type'] = 'article', images: string[] = []): PostFrontmatter {
   return {
+    type,
     title: 'Test',
     description: '',
     date: '2026-01-01',
     tags: [],
+    images,
     draft,
     featured: false,
   };
@@ -60,6 +62,34 @@ describe('saving and deleting', () => {
     });
     expect(putFile).toHaveBeenCalledOnce();
     expect(dispatchBlogPublish).not.toHaveBeenCalled();
+  });
+
+  it('rejects an empty diary', async () => {
+    const { client, putFile } = createClient();
+    await expect(
+      saveDocument(client, {
+        slug: 'test-post',
+        frontmatter: frontmatter(true, 'diary'),
+        body: '   ',
+        extra: {},
+        isNew: true,
+      }),
+    ).rejects.toThrow('日记内容不能为空');
+    expect(putFile).not.toHaveBeenCalled();
+  });
+
+  it('rejects a photo without images', async () => {
+    const { client, putFile } = createClient();
+    await expect(
+      saveDocument(client, {
+        slug: 'test-post',
+        frontmatter: frontmatter(true, 'photo'),
+        body: '',
+        extra: {},
+        isNew: true,
+      }),
+    ).rejects.toThrow('至少需要一张图片');
+    expect(putFile).not.toHaveBeenCalled();
   });
 
   it('deletes an article without triggering a build', async () => {

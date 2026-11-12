@@ -17,14 +17,18 @@ import {
 } from '../data/build-state';
 import { Dashboard } from './Dashboard';
 import { EditorView } from './EditorView';
+import { NewContentModal } from './NewContentModal';
 import { PostsPage } from './PostsPage';
+import { ProfileView } from './ProfileView';
 import { Icon } from './icons';
 import { suggestedSlug, uniqueSlug } from '@/lib/slug';
+import type { ContentType } from '@/lib/frontmatter';
 
 type View =
   | { name: 'dashboard' }
   | { name: 'posts' }
-  | { name: 'new' }
+  | { name: 'profile' }
+  | { name: 'new'; type: ContentType }
   | { name: 'editor'; slug: string };
 
 function formatClock(iso: string): string {
@@ -48,6 +52,7 @@ export function Workspace() {
   const [dirty, setDirty] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [newSlug, setNewSlug] = useState(() => suggestedSlug(''));
+  const [newContentOpen, setNewContentOpen] = useState(false);
   const [editorKey, setEditorKey] = useState(0);
   const [pendingBuildAt, setPendingBuildAt] = useState<string | null>(() => getPendingBuild());
   const [lastBuildAt, setLastBuildAt] = useState<string | null>(() => getLastBuild());
@@ -132,12 +137,19 @@ export function Workspace() {
 
   const navigate = useCallback(
     (next: View) => {
-      if (
-        (next.name === view.name && next.name !== 'editor') ||
-        (next.name === 'editor' && view.name === 'editor' && next.slug === view.slug)
-      ) {
-        setSidebarOpen(false);
-        return;
+      if (next.name === view.name) {
+        if (next.name !== 'editor' && next.name !== 'new') {
+          setSidebarOpen(false);
+          return;
+        }
+        if (next.name === 'editor' && view.name === 'editor' && next.slug === view.slug) {
+          setSidebarOpen(false);
+          return;
+        }
+        if (next.name === 'new' && view.name === 'new' && next.type === view.type) {
+          setSidebarOpen(false);
+          return;
+        }
       }
 
       if (dirty) {
@@ -157,10 +169,18 @@ export function Workspace() {
   );
 
   const openNew = useCallback(() => {
-    setNewSlug(uniqueSlug(suggestedSlug(''), posts.map((post) => post.slug)));
-    setEditorKey((key) => key + 1);
-    navigate({ name: 'new' });
-  }, [navigate, posts]);
+    setNewContentOpen(true);
+  }, []);
+
+  const createNew = useCallback(
+    (type: ContentType) => {
+      setNewContentOpen(false);
+      setNewSlug(uniqueSlug(suggestedSlug(''), posts.map((post) => post.slug)));
+      setEditorKey((key) => key + 1);
+      navigate({ name: 'new', type });
+    },
+    [navigate, posts],
+  );
 
   const openEditor = useCallback(
     (slug: string) => {
@@ -178,6 +198,10 @@ export function Workspace() {
     void refreshPosts(true);
     markPending();
   }, [markPending, refreshPosts]);
+
+  const handleProfileSaved = useCallback(() => {
+    markPending();
+  }, [markPending]);
 
   const handleDeleted = useCallback(() => {
     void refreshPosts(true);
@@ -279,7 +303,11 @@ export function Workspace() {
 
   const editorSlugs = posts.map((post) => post.slug);
   const activeSection =
-    view.name === 'dashboard' ? 'dashboard' : view.name === 'posts' || view.name === 'new' || view.name === 'editor' ? 'posts' : 'dashboard';
+    view.name === 'dashboard'
+      ? 'dashboard'
+      : view.name === 'profile'
+        ? 'profile'
+        : 'posts';
 
   return (
     <div className="admin-shell">
@@ -299,7 +327,7 @@ export function Workspace() {
           </a>
           <div className="admin-brand__text">
             <strong>Hai1ro</strong>
-            <span>文章管理</span>
+            <span>内容管理</span>
           </div>
           <button
             type="button"
@@ -320,7 +348,7 @@ export function Workspace() {
           onClick={openNew}
           className="sidebar-new-btn"
         >
-          新建文章
+          新建内容
         </Button>
 
         <nav className="sidebar-nav" aria-label="后台导航">
@@ -340,7 +368,16 @@ export function Workspace() {
             onClick={() => navigate({ name: 'posts' })}
           >
             <Icon name="file" size={16} />
-            文章管理
+            内容管理
+          </button>
+          <button
+            type="button"
+            className="sidebar-nav__item"
+            data-active={activeSection === 'profile'}
+            onClick={() => navigate({ name: 'profile' })}
+          >
+            <Icon name="user" size={16} />
+            个人资料
           </button>
         </nav>
 
@@ -433,10 +470,22 @@ export function Workspace() {
           />
         )}
 
+        {view.name === 'profile' && (
+          <ProfileView
+            client={client}
+            pendingBuildAt={pendingBuildAt}
+            building={building}
+            onBuild={handleBuild}
+            onSaved={handleProfileSaved}
+            onDirtyChange={setDirty}
+            onOpenSidebar={() => setSidebarOpen(true)}
+          />
+        )}
+
         {view.name === 'new' && (
           <EditorView
             key={`new-${editorKey}`}
-            initial={{ mode: 'new', slug: newSlug }}
+            initial={{ mode: 'new', slug: newSlug, type: view.type }}
             client={client}
             existingSlugs={editorSlugs}
             pendingBuildAt={pendingBuildAt}
@@ -461,7 +510,7 @@ export function Workspace() {
               <Icon name="menu" size={18} />
             </button>
             <Spin size="large" />
-            <p>正在从 GitHub 读取文章…</p>
+            <p>正在从 GitHub 读取内容…</p>
           </div>
         )}
 
@@ -476,12 +525,12 @@ export function Workspace() {
               <Icon name="menu" size={18} />
             </button>
             <Icon name="alert" size={28} />
-            <h2>文章读取失败</h2>
+            <h2>内容读取失败</h2>
             <p>{docError}</p>
             <div className="admin-error__actions">
               <Button onClick={() => setDocReload((value) => value + 1)}>重试</Button>
               <Button theme="borderless" onClick={() => navigate({ name: 'posts' })}>
-                返回文章管理
+                返回内容管理
               </Button>
             </div>
           </div>
@@ -504,6 +553,12 @@ export function Workspace() {
           />
         )}
       </main>
+
+      <NewContentModal
+        visible={newContentOpen}
+        onCancel={() => setNewContentOpen(false)}
+        onPick={createNew}
+      />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useTheme } from '../hooks/useTheme';
 import type { AdminSession } from '../auth/AuthContext';
 import type { PostSummary } from '../data/posts';
 import { formatDateShort } from '@/lib/date';
+import { CONTENT_TYPE_LABEL } from '@/lib/frontmatter';
 
 interface Props {
   session: AdminSession;
@@ -37,8 +38,20 @@ export function Dashboard({
   const { theme, toggle } = useTheme();
   const published = posts.filter((post) => !post.frontmatter.draft).length;
   const drafts = posts.filter((post) => post.frontmatter.draft).length;
+  const typeCounts = {
+    article: posts.filter((post) => post.frontmatter.type === 'article').length,
+    diary: posts.filter((post) => post.frontmatter.type === 'diary').length,
+    photo: posts.filter((post) => post.frontmatter.type === 'photo').length,
+  };
   const recent = posts.slice(0, 5);
   const repo = session.repo.full_name;
+  const displayTitle = (post: PostSummary) =>
+    post.frontmatter.title ||
+    (post.frontmatter.type === 'diary'
+      ? `${formatDateShort(post.frontmatter.date)} 的日记`
+      : post.frontmatter.type === 'photo'
+        ? `${formatDateShort(post.frontmatter.date)} 的照片`
+        : post.slug);
 
   return (
     <div className="admin-page">
@@ -75,7 +88,7 @@ export function Dashboard({
             icon={<Icon name="plus" size={15} />}
             onClick={onNew}
           >
-            新建文章
+            新建内容
           </Button>
           <a className="icon-btn" href="/" target="_blank" rel="noopener noreferrer" title="查看站点">
             <Icon name="external" size={17} />
@@ -93,12 +106,12 @@ export function Dashboard({
               <h1>工作台</h1>
               <p>
                 当前仓库 <code>{repo}</code>，分支 <code>{session.repo.default_branch}</code>。
-                保存文章只提交，构建站点后才会更新网站。
+                保存内容只提交，构建站点后才会更新网站。已发布 {published} 条，草稿 {drafts} 条。
               </p>
             </div>
             <div className="dashboard-head__actions">
               <Button icon={<Icon name="file" size={15} />} onClick={onOpenPosts}>
-                文章管理
+                内容管理
               </Button>
               <Button
                 type="primary"
@@ -132,32 +145,29 @@ export function Dashboard({
             </div>
           )}
 
-          <section className="dashboard-stats" aria-label="文章统计">
+          <section className="dashboard-stats" aria-label="内容统计">
             <button type="button" className="dashboard-stat" onClick={onOpenPosts}>
-              <span>全部文章</span>
+              <span>全部内容</span>
               <strong>{posts.length}</strong>
             </button>
             <button type="button" className="dashboard-stat" onClick={onOpenPosts}>
-              <span>已发布</span>
-              <strong>{published}</strong>
+              <span>文章</span>
+              <strong>{typeCounts.article}</strong>
             </button>
             <button type="button" className="dashboard-stat" onClick={onOpenPosts}>
-              <span>草稿</span>
-              <strong>{drafts}</strong>
+              <span>日记</span>
+              <strong>{typeCounts.diary}</strong>
             </button>
-            <div className="dashboard-stat dashboard-stat--repo">
-              <span>仓库</span>
-              <strong>{repo}</strong>
-              <a href={session.repo.html_url} target="_blank" rel="noopener noreferrer" title="打开 GitHub 仓库">
-                <Icon name="github" size={16} />
-              </a>
-            </div>
+            <button type="button" className="dashboard-stat" onClick={onOpenPosts}>
+              <span>照片</span>
+              <strong>{typeCounts.photo}</strong>
+            </button>
           </section>
 
           <div className="dashboard-grid">
             <section className="admin-card">
               <header className="admin-card__head">
-                <h2>最近文章</h2>
+                <h2>最近内容</h2>
                 <button type="button" className="text-action" onClick={onOpenPosts}>
                   查看全部
                 </button>
@@ -171,7 +181,7 @@ export function Dashboard({
                 </div>
               ) : recent.length === 0 ? (
                 <div className="admin-card__empty">
-                  <p>还没有文章。</p>
+                  <p>还没有内容。</p>
                   <Button theme="borderless" onClick={onNew}>
                     写第一篇
                   </Button>
@@ -190,7 +200,10 @@ export function Dashboard({
                       </span>
                       <span className="recent-post__main">
                         <span className="recent-post__title">
-                          {post.frontmatter.title}
+                          {displayTitle(post)}
+                          <span className="type-badge" data-type={post.frontmatter.type}>
+                            {CONTENT_TYPE_LABEL[post.frontmatter.type]}
+                          </span>
                           {post.frontmatter.draft && <span className="draft-badge">草稿</span>}
                         </span>
                         <span className="recent-post__meta">
@@ -246,10 +259,10 @@ export function Dashboard({
               <section className="admin-card">
                 <h2>写作说明</h2>
                 <ul className="admin-tips">
-                  <li>Typora 风格单栏编辑器，非当前行隐藏 Markdown 标记</li>
-                  <li>工具栏可以插入标题、列表、表格、代码块、链接和图片</li>
-                  <li>保存文章只提交到 GitHub，不会自动构建</li>
-                  <li>修改多篇文章后，在「构建站点」统一发布一次</li>
+                  <li>文章使用 Typora 风格 Markdown 编辑器</li>
+                  <li>日记是纯文本，照片可以一次选择多张图片</li>
+                  <li>保存只提交到 GitHub，不会自动构建</li>
+                  <li>修改多条内容后，在「构建站点」统一发布一次</li>
                 </ul>
               </section>
             </aside>

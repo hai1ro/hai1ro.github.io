@@ -12,7 +12,7 @@ export const siteConfig = {
   /** 页头导航 */
   nav: [
     { label: '首页', href: '/' },
-    { label: '文章', href: '/posts/' },
+    { label: '内容', href: '/posts/' },
   ],
   /** 页脚链接 */
   social: [

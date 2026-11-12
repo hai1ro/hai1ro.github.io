@@ -3,6 +3,7 @@ import { isValidSlug, slugify, suggestedSlug, uniqueSlug } from '../src/lib/slug
 import { countText, deriveDescription } from '../src/lib/text';
 import { formatDateCN, toISODate } from '../src/lib/date';
 import { parsePostSource, stringifyPostSource } from '../src/lib/frontmatter';
+import { parseProfileSource, stringifyProfileSource } from '../src/lib/profile';
 
 describe('slug', () => {
   it('slugifies ASCII titles', () => {
@@ -88,5 +89,87 @@ custom: value
     expect(reparsed.frontmatter.tags).toEqual(['Astro']);
     expect(reparsed.extra).toEqual({ custom: 'value' });
     expect(reparsed.body).toContain('## 正文');
+  });
+});
+
+describe('content types', () => {
+  it('parses diary and photo frontmatter', () => {
+    const diary = parsePostSource(`---
+type: diary
+date: 2026-11-10
+---
+
+今天写了一条日记。`);
+    expect(diary.frontmatter.type).toBe('diary');
+    expect(diary.frontmatter.title).toBe('');
+    expect(diary.frontmatter.images).toEqual([]);
+
+    const photo = parsePostSource(`---
+type: photo
+title: 光
+date: 2026-11-08
+images:
+  - /images/a.jpg
+  - /images/b.jpg
+---
+
+照片说明。`);
+    expect(photo.frontmatter.type).toBe('photo');
+    expect(photo.frontmatter.images).toEqual(['/images/a.jpg', '/images/b.jpg']);
+  });
+
+  it('round-trips type and images', () => {
+    const source = `---
+type: photo
+title: 光
+date: 2026-11-08
+images:
+  - /images/a.jpg
+---
+
+说明。`;
+    const parsed = parsePostSource(source);
+    const output = stringifyPostSource(parsed.frontmatter, parsed.body, parsed.extra);
+    const reparsed = parsePostSource(output);
+    expect(reparsed.frontmatter.type).toBe('photo');
+    expect(reparsed.frontmatter.images).toEqual(['/images/a.jpg']);
+  });
+});
+
+describe('profile markdown', () => {
+  it('parses frontmatter and info list items', () => {
+    const { data } = parseProfileSource(`---
+name: Hai1ro
+handle: "@hai1ro"
+avatar: https://example.com/a.png
+signature: 你好。
+---
+
+- 所在地：上海
+- 邮箱：[hi@example.com](mailto:hi@example.com)
+- 主页：https://example.com
+`);
+    expect(data.name).toBe('Hai1ro');
+    expect(data.handle).toBe('hai1ro');
+    expect(data.signature).toBe('你好。');
+    expect(data.infos).toEqual([
+      { label: '所在地', value: '上海' },
+      { label: '邮箱', value: 'hi@example.com', href: 'mailto:hi@example.com' },
+      { label: '主页', value: 'https://example.com', href: 'https://example.com' },
+    ]);
+  });
+
+  it('serializes info as a markdown list', () => {
+    const source = stringifyProfileSource({
+      name: 'Hai1ro',
+      handle: 'hai1ro',
+      avatar: '',
+      signature: '签名',
+      infos: [{ label: 'GitHub', value: 'hai1ro', href: 'https://github.com/hai1ro' }],
+    });
+    expect(source).toContain('- GitHub：[hai1ro](https://github.com/hai1ro)');
+    const parsed = parseProfileSource(source);
+    expect(parsed.data.infos).toHaveLength(1);
+    expect(parsed.data.infos[0].href).toBe('https://github.com/hai1ro');
   });
 });

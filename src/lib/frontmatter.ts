@@ -1,7 +1,19 @@
 import { parse, stringify } from 'yaml';
 import { toISODate, todayISO } from './date';
 
+/** 内容类型：文章、日记、照片。后续可以继续扩展。 */
+export type ContentType = 'article' | 'diary' | 'photo';
+
+export const CONTENT_TYPES: ContentType[] = ['article', 'diary', 'photo'];
+
+export const CONTENT_TYPE_LABEL: Record<ContentType, string> = {
+  article: '文章',
+  diary: '日记',
+  photo: '照片',
+};
+
 export interface PostFrontmatter {
+  type: ContentType;
   title: string;
   description: string;
   date: string;
@@ -9,6 +21,8 @@ export interface PostFrontmatter {
   tags: string[];
   cover?: string;
   coverAlt?: string;
+  /** 照片型内容使用的图片列表 */
+  images: string[];
   draft: boolean;
   featured: boolean;
 }
@@ -23,6 +37,7 @@ export interface ParsedPostSource {
 }
 
 const KNOWN_KEYS = new Set([
+  'type',
   'title',
   'description',
   'date',
@@ -30,15 +45,22 @@ const KNOWN_KEYS = new Set([
   'tags',
   'cover',
   'coverAlt',
+  'images',
   'draft',
   'featured',
 ]);
 
-export const emptyFrontmatter = (): PostFrontmatter => ({
+export function isContentType(value: unknown): value is ContentType {
+  return value === 'article' || value === 'diary' || value === 'photo';
+}
+
+export const emptyFrontmatter = (type: ContentType = 'article'): PostFrontmatter => ({
+  type,
   title: '',
   description: '',
   date: todayISO(),
   tags: [],
+  images: [],
   draft: true,
   featured: false,
 });
@@ -60,6 +82,19 @@ function normalizeTags(value: unknown): string[] {
       .filter(Boolean);
   }
   return [];
+}
+
+function normalizeImages(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => {
+      if (typeof item === 'string') return item.trim();
+      if (item && typeof item === 'object' && 'src' in item) {
+        return asString((item as { src?: unknown }).src).trim();
+      }
+      return '';
+    })
+    .filter(Boolean);
 }
 
 /**
@@ -86,11 +121,16 @@ export function parsePostSource(source: string): ParsedPostSource {
     }
   }
 
+  const type: ContentType = isContentType(data.type) ? data.type : 'article';
+  const rawTitle = asString(data.title);
+
   const frontmatter: PostFrontmatter = {
-    title: asString(data.title) || '无标题',
+    type,
+    title: rawTitle || (type === 'article' ? '无标题' : ''),
     description: asString(data.description),
     date: toISODate(data.date as string | number | Date | undefined) || todayISO(),
     tags: normalizeTags(data.tags),
+    images: normalizeImages(data.images),
     cover: asString(data.cover) || undefined,
     coverAlt: asString(data.coverAlt) || undefined,
     draft: data.draft === true,
@@ -121,11 +161,15 @@ export function stringifyPostSource(
 ): string {
   const data: Record<string, unknown> = {};
 
-  data.title = frontmatter.title.trim() || '无标题';
+  data.type = frontmatter.type;
+  const title = frontmatter.title.trim();
+  if (title) data.title = title;
+  else if (frontmatter.type === 'article') data.title = '无标题';
   if (frontmatter.description.trim()) data.description = frontmatter.description.trim();
   data.date = toISODate(frontmatter.date) || todayISO();
   if (frontmatter.updated) data.updated = toISODate(frontmatter.updated);
   if (frontmatter.tags.length) data.tags = frontmatter.tags;
+  if (frontmatter.images.length) data.images = frontmatter.images;
   if (frontmatter.cover) data.cover = frontmatter.cover;
   if (frontmatter.cover && frontmatter.coverAlt) data.coverAlt = frontmatter.coverAlt;
   if (frontmatter.draft) data.draft = true;

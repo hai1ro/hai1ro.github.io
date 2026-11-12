@@ -1,10 +1,10 @@
-/* 使用 Semi Design 默认视觉：默认蓝色主色、系统字体、白/深色背景。
-   这里只把站点布局用到的变量映射到 Semi 的 token，不覆盖 Semi 的默认值。 */
+/* 站点布局变量映射到 Semi token。
+   公共站点的配色覆盖在文件末尾的 body.site-body 中，后台不受影响。 */
 
 :root {
   --container: 1120px;
   --content: 720px;
-  --header-h: 60px;
+  --header-h: 64px;
 }
 
 body {
@@ -215,4 +215,64 @@ a.tag:hover {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* ------------------------------------------------------------
+   公共站点视觉：保留 Semi Design 的组件，只调整配色和留白。
+   后台不挂 .site-body，因此不受这些覆盖影响。
+   ------------------------------------------------------------ */
+
+body.site-body {
+  --semi-color-primary: #3b5bdb;
+  --semi-color-primary-hover: #2f4cc2;
+  --semi-color-primary-active: #2741a8;
+  --semi-color-primary-light-default: rgba(59, 91, 219, 0.1);
+  --semi-color-primary-light-hover: rgba(59, 91, 219, 0.16);
+  --semi-color-primary-light-active: rgba(59, 91, 219, 0.22);
+
+  --bg: #f7f7f4;
+  --bg-soft: #f0f0ec;
+  --bg-elev: #ffffff;
+  --text: #17181a;
+  --text-2: #4f525a;
+  --text-3: #898d95;
+  --line: #e5e5e0;
+  --line-strong: #d3d3cc;
+  --accent: #3b5bdb;
+  --accent-hover: #2f4cc2;
+  --accent-soft: rgba(59, 91, 219, 0.1);
+  --code-bg: #f4f4f1;
+  --shadow: 0 18px 50px -24px rgba(24, 26, 32, 0.22);
+  --shadow-soft: 0 8px 30px -18px rgba(24, 26, 32, 0.2);
+
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
+  --font-serif: var(--font-sans);
+
+  background: var(--bg);
+  color: var(--text);
+}
+
+html[data-theme='dark'] body.site-body {
+  --semi-color-primary: #8fa5ff;
+  --semi-color-primary-hover: #a9b9ff;
+  --semi-color-primary-active: #c1ccff;
+  --semi-color-primary-light-default: rgba(143, 165, 255, 0.14);
+  --semi-color-primary-light-hover: rgba(143, 165, 255, 0.2);
+  --semi-color-primary-light-active: rgba(143, 165, 255, 0.26);
+
+  --bg: #0f1012;
+  --bg-soft: #191a1e;
+  --bg-elev: #17181b;
+  --text: #f1f1ee;
+  --text-2: #b2b5bc;
+  --text-3: #7e828b;
+  --line: #292b30;
+  --line-strong: #393c43;
+  --accent: #8fa5ff;
+  --accent-hover: #a9b9ff;
+  --accent-soft: rgba(143, 165, 255, 0.14);
+  --code-bg: #1b1c20;
+  --shadow: 0 24px 60px -28px rgba(0, 0, 0, 0.7);
+  --shadow-soft: 0 10px 36px -22px rgba(0, 0, 0, 0.7);
 }
