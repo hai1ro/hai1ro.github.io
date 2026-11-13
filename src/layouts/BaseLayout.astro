@@ -4,6 +4,7 @@ import '@/styles/tokens.css';
 import '@/styles/site.css';
 import SiteHeader from '@/components/SiteHeader.astro';
 import SiteFooter from '@/components/SiteFooter.astro';
+import SearchDialog from '@/components/SearchDialog.astro';
 import { siteConfig } from '@/config/site';
 
 interface Props {
@@ -90,6 +91,7 @@ const pageTitle = title ? `${title} · ${siteConfig.title}` : siteConfig.title;
       <slot />
     </main>
     {chrome && <SiteFooter />}
+    {chrome && <SearchDialog />}
     <script>
       import '@/scripts/site';
     </script>

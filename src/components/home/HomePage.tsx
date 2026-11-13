@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import {
   Avatar,
   Button,
@@ -83,6 +83,8 @@ export function HomePage({ profile, items, githubUrl, rssUrl }: Props) {
   const [visible, setVisible] = useState(PAGE_SIZE);
   const [preview, setPreview] = useState<{ images: string[]; index: number } | null>(null);
   const [now, setNow] = useState<number | null>(null);
+  const heroRef = useRef<HTMLElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setNow(Date.now());
@@ -100,6 +102,33 @@ export function HomePage({ profile, items, githubUrl, rssUrl }: Props) {
   );
 
   const visibleItems = filtered.slice(0, visible);
+  const hasMore = visible < filtered.length;
+
+  useEffect(() => {
+    if (!hasMore) return;
+    const node = sentinelRef.current;
+    if (!node || !('IntersectionObserver' in window)) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setVisible((value) => Math.min(value + PAGE_SIZE, filtered.length));
+        }
+      },
+      { rootMargin: '360px 0px' },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [filtered.length, hasMore, visible]);
+
+  const handleHeroPointerMove = (event: ReactPointerEvent<HTMLElement>) => {
+    if (event.pointerType === 'touch') return;
+    const hero = heroRef.current;
+    if (!hero) return;
+    const rect = hero.getBoundingClientRect();
+    hero.style.setProperty('--spot-x', `${event.clientX - rect.left}px`);
+    hero.style.setProperty('--spot-y', `${event.clientY - rect.top}px`);
+  };
 
   const changeFilter = (key: string) => {
     setFilter(key as 'all' | HomeContentType);
@@ -112,8 +141,14 @@ export function HomePage({ profile, items, githubUrl, rssUrl }: Props) {
 
   return (
     <div className="home">
-      <section className="profile-hero" aria-labelledby="profile-name">
+      <section
+        className="profile-hero"
+        aria-labelledby="profile-name"
+        ref={heroRef}
+        onPointerMove={handleHeroPointerMove}
+      >
         <div className="profile-hero__noise" aria-hidden="true" />
+        <div className="profile-hero__spotlight" aria-hidden="true" />
         <div className="profile-hero__inner">
           <div className="profile-hero__avatar">
             <Avatar
@@ -230,9 +265,14 @@ export function HomePage({ profile, items, githubUrl, rssUrl }: Props) {
             <Empty title="这里还没有内容" description="等第一条动态出现。" />
           </div>
         ) : (
-          <div className="feed-list">
-            {visibleItems.map((item) => (
-              <article className="feed-card" key={item.slug}>
+          <div className="feed-list" key={filter}>
+            {visibleItems.map((item, index) => (
+              <article
+                className="feed-card"
+                key={item.slug}
+                data-type={item.type}
+                style={{ animationDelay: `${Math.min(index, 7) * 45}ms` }}
+              >
                 <header className="feed-card__head">
                   <Avatar
                     size="small"
@@ -319,10 +359,18 @@ export function HomePage({ profile, items, githubUrl, rssUrl }: Props) {
           </div>
         )}
 
-        {visible < filtered.length && (
-          <div className="feed-more">
-            <Button onClick={() => setVisible((value) => value + PAGE_SIZE)}>加载更多</Button>
-          </div>
+        {hasMore && (
+          <>
+            <div className="feed-sentinel" ref={sentinelRef} aria-hidden="true" />
+            <div className="feed-more">
+              <span className="feed-more__hint" aria-hidden="true">
+                <span />
+                <span />
+                <span />
+              </span>
+              <Button onClick={() => setVisible((value) => value + PAGE_SIZE)}>加载更多</Button>
+            </div>
+          </>
         )}
       </section>
 

@@ -9,7 +9,11 @@ export type IconName =
   | 'arrow-up-right'
   | 'arrow-left'
   | 'pencil'
-  | 'search';
+  | 'search'
+  | 'arrow-up'
+  | 'focus'
+  | 'link'
+  | 'shuffle';
 
 export const icons: Record<IconName, string> = {
   github:
@@ -29,4 +33,12 @@ export const icons: Record<IconName, string> = {
     '<path d="M12 20h9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
   search:
     '<circle cx="11" cy="11" r="6.5" stroke="currentColor" stroke-width="1.7" fill="none"/><path d="m16 16 4.5 4.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>',
+  'arrow-up':
+    '<path d="M12 20V5M6 11l6-6 6 6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
+  focus:
+    '<path d="M4 9V5a1 1 0 0 1 1-1h4M20 9V5a1 1 0 0 0-1-1h-4M4 15v4a1 1 0 0 0 1 1h4M20 15v4a1 1 0 0 1-1 1h-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" fill="none"/><circle cx="12" cy="12" r="2.4" stroke="currentColor" stroke-width="1.7" fill="none"/>',
+  link:
+    '<path d="M10 13a5 5 0 0 0 7.5.5l2-2a5 5 0 0 0-7-7l-1.2 1.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" fill="none"/><path d="M14 11a5 5 0 0 0-7.5-.5l-2 2a5 5 0 0 0 7 7l1.2-1.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" fill="none"/>',
+  shuffle:
+    '<path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
 };

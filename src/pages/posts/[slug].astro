@@ -3,6 +3,7 @@ import { render } from 'astro:content';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import Icon from '@/components/Icon.astro';
 import PhotoGallery from '@/components/PhotoGallery';
+import ReadingTools from '@/components/ReadingTools.astro';
 import { siteConfig } from '@/config/site';
 import { formatDateCN } from '@/lib/date';
 import {
@@ -68,6 +69,7 @@ const jsonLd = {
 ---
 
 <BaseLayout title={title} description={data.description} image={socialImage} type="article">
+  <ReadingTools />
   {isArticle && (
     <script slot="head" type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
   )}

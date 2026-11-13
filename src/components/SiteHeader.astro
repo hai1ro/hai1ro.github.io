@@ -28,6 +28,17 @@ const isActive = (href: string) => {
     </nav>
 
     <div class="site-actions">
+      <button
+        class="icon-btn site-search-btn"
+        type="button"
+        data-search-open
+        aria-label="搜索内容"
+        aria-haspopup="dialog"
+        aria-expanded="false"
+        title="搜索内容 (Ctrl/⌘ K)"
+      >
+        <Icon name="search" size={16} />
+      </button>
       <a
         class="icon-btn"
         href={siteConfig.adminPath}

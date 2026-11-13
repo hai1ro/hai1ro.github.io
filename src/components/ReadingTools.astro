@@ -1,0 +1,43 @@
+---
+import Icon from './Icon.astro';
+import '@/styles/reading.css';
+---
+
+<div class="reading-progress" aria-hidden="true">
+  <span class="reading-progress__bar" data-reading-progress></span>
+</div>
+
+<div class="reading-dock" data-reading-dock>
+  <button
+    type="button"
+    class="reading-dock__btn"
+    data-copy-link
+    aria-label="复制本文链接"
+    title="复制本文链接"
+  >
+    <Icon name="link" size={16} />
+  </button>
+  <button
+    type="button"
+    class="reading-dock__btn"
+    data-focus-toggle
+    aria-pressed="false"
+    aria-label="进入专注模式"
+    title="专注模式 (F)"
+  >
+    <Icon name="focus" size={16} />
+  </button>
+  <button
+    type="button"
+    class="reading-dock__btn reading-dock__btn--top"
+    data-back-top
+    aria-label="回到顶部"
+    title="回到顶部"
+  >
+    <Icon name="arrow-up" size={16} />
+  </button>
+</div>
+
+<script>
+  import '@/scripts/reading';
+</script>

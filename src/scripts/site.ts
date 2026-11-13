@@ -1,5 +1,14 @@
 import { currentTheme, toggleTheme } from '@/lib/theme';
 
+interface ViewTransitionLike {
+  ready: Promise<void>;
+  finished: Promise<void>;
+}
+
+type DocumentWithViewTransition = Document & {
+  startViewTransition?: (callback: () => void) => ViewTransitionLike;
+};
+
 function initThemeToggle(): void {
   const sync = () => {
     document.querySelectorAll<HTMLElement>('[data-theme-toggle]').forEach((button) => {
@@ -9,10 +18,59 @@ function initThemeToggle(): void {
     });
   };
 
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
   document.querySelectorAll<HTMLElement>('[data-theme-toggle]').forEach((button) => {
+    if (button.dataset.themeBound === 'true') return;
+    button.dataset.themeBound = 'true';
+
     button.addEventListener('click', () => {
-      toggleTheme();
-      sync();
+      const apply = () => {
+        toggleTheme();
+        sync();
+      };
+
+      const withTransition = (document as DocumentWithViewTransition).startViewTransition;
+      if (!withTransition || reducedMotion) {
+        apply();
+        return;
+      }
+
+      const rect = button.getBoundingClientRect();
+      const x = rect.left + rect.width / 2;
+      const y = rect.top + rect.height / 2;
+      const radius = Math.hypot(
+        Math.max(x, window.innerWidth - x),
+        Math.max(y, window.innerHeight - y),
+      );
+      const root = document.documentElement;
+      root.classList.add('theme-transitioning');
+
+      const transition = withTransition.call(document, apply);
+      transition.ready
+        .then(() => {
+          root.animate(
+            {
+              clipPath: [
+                `circle(0px at ${x}px ${y}px)`,
+                `circle(${radius}px at ${x}px ${y}px)`,
+              ],
+            },
+            {
+              duration: 520,
+              easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)',
+              pseudoElement: '::view-transition-new(root)',
+            },
+          );
+        })
+        .catch(() => {
+          /* 浏览器跳过 transition 时回退到普通切换 */
+        })
+        .finally(() => {
+          root.classList.remove('theme-transitioning');
+        });
+
+      transition.finished.finally(() => root.classList.remove('theme-transitioning'));
     });
   });
   sync();

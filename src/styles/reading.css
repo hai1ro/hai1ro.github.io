@@ -1,0 +1,164 @@
+/* ============================================================
+   阅读页：进度条、专注模式、回到顶部
+   ============================================================ */
+
+.reading-progress {
+  position: fixed;
+  top: var(--header-h);
+  right: 0;
+  left: 0;
+  z-index: 48;
+  height: 2px;
+  background: color-mix(in srgb, var(--line) 40%, transparent);
+  pointer-events: none;
+  transition: top 0.25s ease;
+}
+
+.reading-progress__bar {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 35%, #b8a4f5));
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.08s linear;
+}
+
+.reading-dock {
+  position: fixed;
+  right: 22px;
+  bottom: 24px;
+  z-index: 49;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 5px;
+  border: 1px solid color-mix(in srgb, var(--line-strong) 55%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-elev) 82%, transparent);
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: saturate(140%) blur(14px);
+  -webkit-backdrop-filter: saturate(140%) blur(14px);
+}
+
+.reading-dock__btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-3);
+  transition: color 0.18s ease, background 0.18s ease, transform 0.18s ease;
+}
+
+.reading-dock__btn:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.reading-dock__btn[aria-pressed='true'] {
+  background: var(--accent);
+  color: #fff;
+}
+
+.reading-dock__btn--top {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(6px);
+  transition: opacity 0.2s ease, visibility 0.2s ease, transform 0.2s ease,
+    color 0.18s ease, background 0.18s ease;
+}
+
+.reading-dock[data-scrolled='true'] .reading-dock__btn--top {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+}
+
+.reading-dock__btn[data-copied='true']::after {
+  content: '已复制';
+  position: absolute;
+  right: calc(100% + 8px);
+  top: 50%;
+  padding: 3px 7px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--bg-elev);
+  color: var(--text-2);
+  font-size: 10px;
+  white-space: nowrap;
+  transform: translateY(-50%);
+  animation: copied-in 0.18s ease both;
+}
+
+@keyframes copied-in {
+  from {
+    opacity: 0;
+    transform: translate(4px, -50%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(0, -50%);
+  }
+}
+
+html[data-focus='on'] .site-header,
+html[data-focus='on'] .site-footer,
+html[data-focus='on'] .toc,
+html[data-focus='on'] .article-header__back,
+html[data-focus='on'] .article-footer,
+html[data-focus='on'] .reading-progress {
+  display: none;
+}
+
+html[data-focus='on'] .reading-dock {
+  right: 18px;
+  bottom: 18px;
+}
+
+html[data-focus='on'] .article-header {
+  padding-top: clamp(56px, 8vw, 84px);
+}
+
+html[data-focus='on'] .article-layout {
+  grid-template-columns: minmax(0, var(--content));
+}
+
+html[data-focus='on'] .article-cover {
+  max-width: var(--content);
+}
+
+html[data-focus='on'] .prose {
+  font-size: 17px;
+  line-height: 1.95;
+}
+
+@media (max-width: 720px) {
+  .reading-dock {
+    right: 14px;
+    bottom: 16px;
+  }
+
+  .reading-dock__btn {
+    width: 30px;
+    height: 30px;
+  }
+
+  html[data-focus='on'] .prose {
+    font-size: 16px;
+    line-height: 1.9;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reading-progress__bar,
+  .reading-dock__btn,
+  .reading-dock__btn--top {
+    transition: none;
+  }
+}
